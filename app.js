@@ -20,10 +20,6 @@
   ];
   const buildingOrder = ['temple','workshop','bar','market','ship','docks'];
   const buildingLevel = Object.fromEntries(buildingOrder.map(name => [name,1]));
-  const upgradedDocks = {
-    2:{x:190,y:580,w:850,h:250,imageHeight:164,labelTop:'-45%'},
-    3:{x:130,y:580,w:900,h:250,imageHeight:220,labelTop:'-70%'}
-  };
   const effectFiles = {
     hover:'Mouse-hover.mp3', teleportOut:'Teleport - out.mp3', teleportIn:'Teleport-in.mp3',
     barEnter:'Bar - enter.mp3', barExit:'Bar - exit.mp3', docksEnter:'Docks - Enter.mp3',
@@ -70,11 +66,15 @@
   }
   let hubScene = null;
   let hubError = false;
+  const hubImageCache = new Map();
+  let hubLoading = false;
   const tracks = {menu:'Black Fortress - main menu.mp3', hub:'Black Fortress - Hub Location.mp3', mission:'Black Fortress - Raid.mp3'};
   let page = 'menu';
   let selectedHero = 0;
   let soundEnabled = true;
   let settingsOpen = false;
+  let optionsOpen = false;
+  let optionsReturnFocus = null;
   let mission = null;
   const keys = new Set();
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -150,7 +150,58 @@
     } else render();
   }
 
+  function hubImages() {
+    if (!hubScene) return [];
+    const sources = ['hub/background.png', 'hub/debris-1.png', 'hub/debris-2.png', 'hub/debris-3.png'];
+    for (const layer of hubScene.layers) {
+      if (layer.visible === false) continue;
+      const place = typeof layer.building === 'string' ? layer.building : layer.building ? layer.name.split(' · ')[0] : null;
+      sources.push(place ? `layers/${place}-level-${buildingLevel[place]}.png?set=building-order-2` : `hub/${layer.src.split('/').pop()}`);
+    }
+    return [...new Set(sources)];
+  }
+
+  function loadHubImage(src) {
+    if (!hubImageCache.has(src)) {
+      hubImageCache.set(src, new Promise(resolve => {
+        const image = new Image();
+        image.onload = () => {
+          if (image.decode) image.decode().catch(() => {}).finally(resolve);
+          else resolve();
+        };
+        image.onerror = resolve;
+        image.src = src;
+        if (image.complete && image.naturalWidth) resolve();
+      }));
+    }
+    return hubImageCache.get(src);
+  }
+
+  async function enterHub(fromMission) {
+    hubLoading = true;
+    const overlay = document.createElement('div');
+    overlay.className = 'hub-loading';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<div class="hub-loading-content"><span class="hub-loading-spinner" aria-hidden="true"></span><strong>Entering Precipice</strong><span>Loading the outpost…</span></div>';
+    document.body.append(overlay);
+    const started = performance.now();
+    await Promise.race([Promise.all(hubImages().map(loadHubImage)), new Promise(resolve => setTimeout(resolve, 12000))]);
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, 350 - (performance.now() - started))));
+    page = 'hub';
+    render();
+    if (fromMission) playEffect('teleportIn');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      overlay.classList.add('leaving');
+      setTimeout(() => {
+        overlay.remove();
+        hubLoading = false;
+      }, 2300);
+    }));
+  }
+
   function go(destination) {
+    if (hubLoading) return;
     if (buildingEffects[page] && destination !== page) fadeEffect(buildingEffects[page]);
     if (page === 'hub' && buildingEffects[destination]) playEffect(buildingEffects[destination]);
     if (page === 'bar' && destination === 'hub') playEffect('barExit');
@@ -161,11 +212,15 @@
     if (page === 'mission' && destination === 'hub') {
       const walkingIntoPortal = !!mission?.entering;
       if (!walkingIntoPortal) playEffect('teleportOut');
-      setTimeout(() => { if (page === 'hub') playEffect('teleportIn'); },walkingIntoPortal ? 0 : 400);
     }
+    const fromMission = page === 'mission';
     if (page === 'mission' && destination !== 'mission') {
       mission = null;
       keys.clear();
+    }
+    if (destination === 'hub' && page !== 'hub') {
+      enterHub(fromMission);
+      return;
     }
     page = destination;
     render();
@@ -177,11 +232,41 @@
   }
 
   function renderTop() {
-    return `<header class="top"><div class="brand">Blackstone Expedition · Precipice</div><div class="hud">Party: Aeldari Ranger · Mission Playtest</div>${button(musicLabel(), 'sound', {small:true})}</header>`;
+    return `<header class="top"><div class="brand">Blackstone Expedition · Precipice</div><div class="hud">Party: Aeldari Ranger · Mission Playtest</div><div class="top-actions">${button('Options', 'options', {small:true})}${button(musicLabel(), 'sound', {small:true})}</div></header>`;
+  }
+
+  function volumeControls() {
+    return Object.entries({overall:'Overall',music:'Music',sfx:'SFX'}).map(([name,label]) => `<label class="volume-control" for="volume-${name}"><span>${label}</span><output for="volume-${name}">${volumes[name]}%</output><input id="volume-${name}" type="range" min="0" max="100" step="1" value="${volumes[name]}" data-volume="${name}"></label>`).join('');
+  }
+
+  function openOptions() {
+    if (optionsOpen) return;
+    optionsOpen = true;
+    optionsReturnFocus = document.activeElement;
+    keys.clear();
+    const dialog = document.createElement('dialog');
+    dialog.className = 'options-dialog';
+    dialog.setAttribute('aria-labelledby', 'options-title');
+    dialog.innerHTML = `<div class="tag">Blackstone Expedition</div><h2 id="options-title">Options</h2><p>Audio levels</p>${volumeControls()}<div class="options-actions">${button(soundEnabled ? 'Music On' : 'Music Off', 'options-music', {small:true})}${button('Back to Game', 'options-close', {small:true})}</div>`;
+    app.append(dialog);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); closeOptions(); });
+    dialog.showModal();
+    dialog.querySelector('[data-action="options-close"]').focus();
+  }
+
+  function closeOptions() {
+    const dialog = app.querySelector('.options-dialog');
+    if (dialog) {
+      dialog.close();
+      dialog.remove();
+    }
+    optionsOpen = false;
+    optionsReturnFocus?.focus();
+    optionsReturnFocus = null;
   }
 
   function renderMenu() {
-    const controls = Object.entries({overall:'Overall',music:'Music',sfx:'SFX'}).map(([name,label]) => `<label class="volume-control" for="volume-${name}"><span>${label}</span><output for="volume-${name}">${volumes[name]}%</output><input id="volume-${name}" type="range" min="0" max="100" step="1" value="${volumes[name]}" data-volume="${name}"></label>`).join('');
+    const controls = volumeControls();
     const content = settingsOpen
       ? `<div class="settings-panel"><h2>Settings</h2><p>Sound levels</p>${controls}<nav class="menu-nav settings-nav">${button(musicLabel(),'sound')}${button('Back to Menu','settings-back')}</nav></div>`
       : `<p>Enter the fortress from Precipice. The first passage is ready to explore.</p><nav class="menu-nav">${button('New Expedition','hub')}${button('Settings','settings')}${button('Continue · Coming Soon','', {disabled:true})}</nav>`;
@@ -196,16 +281,17 @@
     }
     const layers = hubScene.layers.map((layer,index) => {
       if (layer.visible === false) return '';
-      const place = layer.building ? layer.name.split(' · ')[0] : null;
+      const place = typeof layer.building === 'string' ? layer.building : layer.building ? layer.name.split(' · ')[0] : null;
       const level = place && buildingLevel[place];
-      const docksLayout = place === 'docks' && upgradedDocks[level];
-      const layout = docksLayout || layer;
+      const layout = layer.variants?.[level] || layer;
       const src = place ? `layers/${place}-level-${level}.png?set=building-order-2` : `hub/${layer.src.split('/').pop()}`;
-      const style = `left:${layout.x/16.72}%;top:${layout.y/9.41}%;width:${layout.w/16.72}%;${layout.h == null ? '' : `height:${layout.h/9.41}%;`}z-index:${index+1};opacity:${(layer.opacity ?? 100)/100};${docksLayout ? 'clip-path:none;' : `clip-path:inset(${layer.crop || 0}% 0 0 0);`}--label-left:${Math.max(0,-layout.x)/layout.w*100}%;${docksLayout ? `--sprite-height:${docksLayout.imageHeight}%;--dock-label-top:${docksLayout.labelTop};` : ''}`;
-      if (place && level) return `<button class="landmark hub-sprite${docksLayout ? ' docks-upgraded' : ''}" type="button" data-action="${place}" aria-label="${names[place]}, level ${level}" title="${names[place]}" style="${style}"><img src="${src}" alt=""><span>${names[place]} · Level ${level}</span></button>`;
-      return `<div class="hub-sprite" style="${style}"><img src="${src}" alt=""></div>`;
+      const style = `left:${layout.x/16.72}%;top:${layout.y/9.41}%;width:${layout.w/16.72}%;${layout.h == null ? '' : `height:${layout.h/9.41}%;`}z-index:${index+1};opacity:${(layer.opacity ?? 100)/100};${layer.crop ? `clip-path:inset(${layer.crop}% 0 0 0)` : 'clip-path:none'};--label-left:${Math.max(0,-layout.x)/layout.w*100}%`;
+      const imageStyle = `transform:rotate(${layout.rotation ?? layer.rotation ?? 0}deg)`;
+      if (place && level) return `<button class="landmark hub-sprite" type="button" data-action="${place}" aria-label="${names[place]}, level ${level}" title="${names[place]}" style="${style}"><img src="${src}" alt="" style="${imageStyle}"><span>${names[place]} · Level ${level}</span></button>`;
+      return `<div class="hub-sprite" style="${style}"><img src="${src}" alt="" style="${imageStyle}"></div>`;
     }).join('');
-    app.innerHTML = `${renderTop()}<section class="stage"><div class="map">${layers}<div class="map-label">Precipice</div><div class="map-tip">Select the Docks to enter the fortress</div></div></section>`;
+    const debris = `<div class="hub-debris-field" aria-hidden="true"><img src="hub/debris-1.png" alt=""><img src="hub/debris-2.png" alt=""><img src="hub/debris-3.png" alt=""><img src="hub/debris-1.png" alt=""><img src="hub/debris-2.png" alt=""></div>`;
+    app.innerHTML = `${renderTop()}<section class="stage"><div class="map">${debris}${layers}<div class="map-label">Precipice</div><div class="map-tip">Select the Docks to enter the fortress</div></div></section>`;
   }
 
   function renderHire() {
@@ -229,7 +315,7 @@
   }
 
   function renderMission() {
-    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="structures" class="world"><img class="module span" src="corridor/modules/bg20/blackstone_bg20_span_b.png" alt=""><img class="module ribs" src="corridor/modules/bg20/blackstone_bg20_ribs_d.png" alt=""><img class="module pylon" src="corridor/modules/bg20/blackstone_bg20_pylon_a.png" alt=""><img class="module aperture" src="corridor/modules/bg20/blackstone_bg20_aperture_c.png" alt=""></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-top"><span>THE FIRST PASSAGE</span><span>Reach the far portal</span>${button(musicLabel(),'sound',{small:true})}</div><div class="mission-bottom"><span>A / D or ← / → to move · release to idle</span>${button('Return to Precipice','hub',{small:true})}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="structures" class="world"><img class="module span" src="corridor/modules/bg20/blackstone_bg20_span_b.png" alt=""><img class="module ribs" src="corridor/modules/bg20/blackstone_bg20_ribs_d.png" alt=""><img class="module pylon" src="corridor/modules/bg20/blackstone_bg20_pylon_a.png" alt=""><img class="module aperture" src="corridor/modules/bg20/blackstone_bg20_aperture_c.png" alt=""></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-top"><span>THE FIRST PASSAGE</span><span>Reach the far portal</span>${button('Options','options',{small:true})}${button(musicLabel(),'sound',{small:true})}</div><div class="mission-bottom"><span>A / D or ← / → to move · release to idle</span>${button('Return to Precipice','hub',{small:true})}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
     startMission();
   }
 
@@ -248,6 +334,14 @@
     if (!target || target.disabled) return;
     const action = target.dataset.action;
     if (action === 'sound') toggleSound();
+    else if (action === 'options') openOptions();
+    else if (action === 'options-close') closeOptions();
+    else if (action === 'options-music') {
+      soundEnabled = !soundEnabled;
+      setMusic();
+      target.textContent = soundEnabled ? 'Music On' : 'Music Off';
+      updateMusicControl();
+    }
     else if (action === 'settings') { settingsOpen = true; renderMenu(); }
     else if (action === 'settings-back') { settingsOpen = false; renderMenu(); }
     else if (action.startsWith('upgrade-')) upgrade(action.slice(8));
@@ -281,7 +375,7 @@
   });
 
   addEventListener('keydown', event => {
-    if (page !== 'mission') return;
+    if (page !== 'mission' || optionsOpen) return;
     const key = event.key.toLowerCase();
     if (['a','d','arrowleft','arrowright'].includes(key)) {
       keys.add(key);
@@ -292,7 +386,7 @@
   addEventListener('blur', () => keys.clear());
   app.addEventListener('pointerdown', event => {
     const button = event.target.closest('[data-direction]');
-    if (button && page === 'mission') {
+    if (button && page === 'mission' && !optionsOpen) {
       keys.add(button.dataset.direction === 'left' ? 'arrowleft' : 'arrowright');
       button.setPointerCapture(event.pointerId);
       event.preventDefault();
@@ -326,7 +420,7 @@
       const width = viewport.clientWidth;
       const worldWidth = unit * 6;
       const maxCamera = Math.max(0, worldWidth-width);
-      const direction = Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+      const direction = optionsOpen ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
       if (!state.entering && direction) {
         state.x = clamp(state.x + direction * unit * .27 * dt, unit*.29, unit*5.75);
         state.facing = direction;
@@ -382,12 +476,12 @@
   }
 
   render();
-  fetch('hub/scene.json').then(response => {
-    if (!response.ok) throw new Error('Hub scene missing');
-    return response.json();
-  }).then(data => {
-    if (data.version !== 1 || data.width !== 1672 || data.height !== 941 || !Array.isArray(data.layers)) throw new Error('Invalid hub scene');
+  const data = window.BLACKSTONE_HUB_SCENE;
+  if (data && [1, 2].includes(data.version) && data.width === 1672 && data.height === 941 && Array.isArray(data.layers)) {
     hubScene = data;
     if (page === 'hub') renderHub();
-  }).catch(() => { hubError = true; if (page === 'hub') renderHub(); });
+  } else {
+    hubError = true;
+    if (page === 'hub') renderHub();
+  }
 })();

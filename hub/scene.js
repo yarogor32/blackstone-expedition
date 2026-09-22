@@ -1,4 +1,4 @@
-{
+window.BLACKSTONE_HUB_SCENE = {
   "version": 2,
   "width": 1672,
   "height": 941,
@@ -401,4 +401,4 @@
       "rotation": 0
     }
   ]
-}
+};
