@@ -20,6 +20,10 @@
   ];
   const buildingOrder = ['temple','workshop','bar','market','ship','docks'];
   const buildingLevel = Object.fromEntries(buildingOrder.map(name => [name,1]));
+  const upgradedDocks = {
+    2:{x:190,y:580,w:850,h:250,imageHeight:164,labelTop:'-45%'},
+    3:{x:130,y:580,w:900,h:250,imageHeight:220,labelTop:'-70%'}
+  };
   const effectFiles = {
     hover:'Mouse-hover.mp3', teleportOut:'Teleport - out.mp3', teleportIn:'Teleport-in.mp3',
     barEnter:'Bar - enter.mp3', barExit:'Bar - exit.mp3', docksEnter:'Docks - Enter.mp3',
@@ -35,12 +39,34 @@
     return [name,sound];
   }));
   const buildingEffects = {temple:'templeEnter',workshop:'workshopEnter',bar:'barEnter',market:'marketEnter',ship:'shipEnter',docks:'docksEnter'};
+  const effectFades = new Map();
   function playEffect(name) {
     const sound = effects[name];
     if (!sound) return;
+    effectFades.delete(name);
     sound.pause();
     sound.currentTime = 0;
+    sound.volume = effectLevel(name);
     sound.play().catch(() => {});
+  }
+  function fadeEffect(name, duration = 220) {
+    const sound = effects[name];
+    if (!sound || sound.paused) return;
+    const fade = {started:performance.now()};
+    effectFades.set(name, fade);
+    function step(now) {
+      if (effectFades.get(name) !== fade) return;
+      const remaining = Math.max(0, 1 - (now - fade.started) / duration);
+      sound.volume = effectLevel(name) * remaining;
+      if (remaining > 0) requestAnimationFrame(step);
+      else {
+        sound.pause();
+        sound.currentTime = 0;
+        sound.volume = effectLevel(name);
+        effectFades.delete(name);
+      }
+    }
+    requestAnimationFrame(step);
   }
   let hubScene = null;
   let hubError = false;
@@ -60,10 +86,13 @@
     return [name, Number.isFinite(value) && value >= 0 && value <= 100 ? value : defaultValue];
   }));
 
+  function effectLevel(name) {
+    return volumes.overall * volumes.sfx / 10000 * (effectVolume[name] ?? .55);
+  }
   function applyVolumes() {
     audio.volume = volumes.overall * volumes.music / 10000;
     for (const [name, sound] of Object.entries(effects)) {
-      sound.volume = volumes.overall * volumes.sfx / 10000 * (effectVolume[name] ?? .55);
+      if (!effectFades.has(name)) sound.volume = effectLevel(name);
     }
   }
   applyVolumes();
@@ -122,6 +151,7 @@
   }
 
   function go(destination) {
+    if (buildingEffects[page] && destination !== page) fadeEffect(buildingEffects[page]);
     if (page === 'hub' && buildingEffects[destination]) playEffect(buildingEffects[destination]);
     if (page === 'bar' && destination === 'hub') playEffect('barExit');
     if (page === 'portals' && destination === 'mission') {
@@ -168,9 +198,11 @@
       if (layer.visible === false) return '';
       const place = layer.building ? layer.name.split(' · ')[0] : null;
       const level = place && buildingLevel[place];
+      const docksLayout = place === 'docks' && upgradedDocks[level];
+      const layout = docksLayout || layer;
       const src = place ? `layers/${place}-level-${level}.png?set=building-order-2` : `hub/${layer.src.split('/').pop()}`;
-      const style = `left:${layer.x/16.72}%;top:${layer.y/9.41}%;width:${layer.w/16.72}%;${layer.h == null ? '' : `height:${layer.h/9.41}%;`}z-index:${index+1};opacity:${(layer.opacity ?? 100)/100};clip-path:inset(${layer.crop || 0}% 0 0 0);--label-left:${Math.max(0,-layer.x)/layer.w*100}%`;
-      if (place && level) return `<button class="landmark hub-sprite" type="button" data-action="${place}" aria-label="${names[place]}, level ${level}" title="${names[place]}" style="${style}"><img src="${src}" alt=""><span>${names[place]} · Level ${level}</span></button>`;
+      const style = `left:${layout.x/16.72}%;top:${layout.y/9.41}%;width:${layout.w/16.72}%;${layout.h == null ? '' : `height:${layout.h/9.41}%;`}z-index:${index+1};opacity:${(layer.opacity ?? 100)/100};${docksLayout ? 'clip-path:none;' : `clip-path:inset(${layer.crop || 0}% 0 0 0);`}--label-left:${Math.max(0,-layout.x)/layout.w*100}%;${docksLayout ? `--sprite-height:${docksLayout.imageHeight}%;--dock-label-top:${docksLayout.labelTop};` : ''}`;
+      if (place && level) return `<button class="landmark hub-sprite${docksLayout ? ' docks-upgraded' : ''}" type="button" data-action="${place}" aria-label="${names[place]}, level ${level}" title="${names[place]}" style="${style}"><img src="${src}" alt=""><span>${names[place]} · Level ${level}</span></button>`;
       return `<div class="hub-sprite" style="${style}"><img src="${src}" alt=""></div>`;
     }).join('');
     app.innerHTML = `${renderTop()}<section class="stage"><div class="map">${layers}<div class="map-label">Precipice</div><div class="map-tip">Select the Docks to enter the fortress</div></div></section>`;
