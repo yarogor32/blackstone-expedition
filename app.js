@@ -30,7 +30,6 @@
   const effects = Object.fromEntries(Object.entries(effectFiles).map(([name,file]) => {
     const sound = new Audio(`sfx/${encodeURIComponent(file)}`);
     sound.preload = 'auto';
-    sound.volume = effectVolume[name] ?? .55;
     sound.dataset.effect = name;
     document.body.append(sound);
     return [name,sound];
@@ -49,9 +48,25 @@
   let page = 'menu';
   let selectedHero = 0;
   let soundEnabled = true;
+  let settingsOpen = false;
   let mission = null;
   const keys = new Set();
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const volumeDefaults = {overall:40, music:45, sfx:45};
+  let savedVolumes = {};
+  try { savedVolumes = JSON.parse(localStorage.getItem('blackstone-volumes') || '{}') || {}; } catch (_) { /* Use defaults. */ }
+  const volumes = Object.fromEntries(Object.entries(volumeDefaults).map(([name, defaultValue]) => {
+    const value = Number(savedVolumes[name]);
+    return [name, Number.isFinite(value) && value >= 0 && value <= 100 ? value : defaultValue];
+  }));
+
+  function applyVolumes() {
+    audio.volume = volumes.overall * volumes.music / 10000;
+    for (const [name, sound] of Object.entries(effects)) {
+      sound.volume = volumes.overall * volumes.sfx / 10000 * (effectVolume[name] ?? .55);
+    }
+  }
+  applyVolumes();
 
   function button(label, action, options = {}) {
     const classes = `btn${options.small ? ' small' : ''}`;
@@ -67,7 +82,7 @@
     const control = document.querySelector('[data-action="sound"]');
     if (control) control.textContent = musicLabel();
     const hint = document.querySelector('.menu-hint');
-    if (hint) hint.textContent = audio.paused ? 'Click anywhere to start the menu music.' : 'Menu music is playing.';
+    if (hint) hint.textContent = !soundEnabled ? 'Menu music is off.' : audio.paused ? 'Click anywhere to start the menu music.' : 'Menu music is playing.';
   }
 
   audio.addEventListener('playing', updateMusicControl);
@@ -78,7 +93,6 @@
     const path = `music/${encodeURIComponent(track)}`;
     if (audio.getAttribute('src') !== path) {
       audio.setAttribute('src', path);
-      audio.volume = 0.42;
       audio.load();
     }
     if (soundEnabled) audio.play().catch(updateMusicControl);
@@ -137,7 +151,12 @@
   }
 
   function renderMenu() {
-    app.innerHTML = `<section class="scene" style="background-image:url('backgrounds/main-menu.png')"><div class="menu-shell"><h1 class="game-logo"><img src="branding/blackstone-expedition-logo.png" alt="Blackstone Expedition"></h1><p>Enter the fortress from Precipice. The first passage is ready to explore.</p><nav class="menu-nav">${button('New Expedition','hub')}${button(musicLabel(),'sound')}${button('Continue · Coming Soon','', {disabled:true})}</nav><p class="menu-hint">Click anywhere to start the menu music.</p></div><aside class="parchment"><h2>Captain's Log</h2><p>Precipice is the port near the fortress. Visit the docks, select a portal, and guide the Ranger through the passage.</p></aside></section>`;
+    const controls = Object.entries({overall:'Overall',music:'Music',sfx:'SFX'}).map(([name,label]) => `<label class="volume-control" for="volume-${name}"><span>${label}</span><output for="volume-${name}">${volumes[name]}%</output><input id="volume-${name}" type="range" min="0" max="100" step="1" value="${volumes[name]}" data-volume="${name}"></label>`).join('');
+    const content = settingsOpen
+      ? `<div class="settings-panel"><h2>Settings</h2><p>Sound levels</p>${controls}<nav class="menu-nav settings-nav">${button(musicLabel(),'sound')}${button('Back to Menu','settings-back')}</nav></div>`
+      : `<p>Enter the fortress from Precipice. The first passage is ready to explore.</p><nav class="menu-nav">${button('New Expedition','hub')}${button('Settings','settings')}${button('Continue · Coming Soon','', {disabled:true})}</nav>`;
+    app.innerHTML = `<section class="scene" style="background-image:url('backgrounds/main-menu.png')"><div class="menu-shell"><h1 class="game-logo"><img src="branding/blackstone-expedition-logo.png" alt="Blackstone Expedition"></h1>${content}<p class="menu-hint">Click anywhere to start the menu music.</p></div><aside class="parchment"><h2>Captain's Log</h2><p>Precipice is the port near the fortress. Visit the docks, select a portal, and guide the Ranger through the passage.</p></aside></section>`;
+    updateMusicControl();
   }
 
   function renderHub() {
@@ -170,7 +189,7 @@
       return button(action ? label : `${label} · Coming Soon`, action, {disabled:!action});
     }).join('');
     const level = buildingLevel[place];
-    app.innerHTML = `${renderTop()}<section class="scene" style="background-image:url('interiors/${place}.png')"><div class="building-panel"><div class="tag">Precipice Location · Level ${level}</div><h2>${names[place]}</h2><p>${details[0]}</p>${actions}<div class="upgrade-box"><strong>Building Level ${level} / 3</strong><p class="caption">Visual upgrade preview.</p>${button(level === 3 ? 'Maximum Level' : 'Upgrade Building',`upgrade-${place}`,{disabled:level === 3})}</div></div><div class="back">${button('Back to Precipice','hub',{small:true})}</div></section>`;
+    app.innerHTML = `${renderTop()}<section class="scene" style="background-image:url('interiors/${place}.png')"><div class="building-panel"><div class="building-panel-top"><div class="tag">Precipice Location · Level ${level}</div>${button('Back to Precipice','hub',{small:true})}</div><h2>${names[place]}</h2><p>${details[0]}</p>${actions}<div class="upgrade-box"><strong>Building Level ${level} / 3</strong><p class="caption">Visual upgrade preview.</p>${button(level === 3 ? 'Maximum Level' : 'Upgrade Building',`upgrade-${place}`,{disabled:level === 3})}</div></div></section>`;
   }
 
   function renderPortals() {
@@ -197,9 +216,21 @@
     if (!target || target.disabled) return;
     const action = target.dataset.action;
     if (action === 'sound') toggleSound();
+    else if (action === 'settings') { settingsOpen = true; renderMenu(); }
+    else if (action === 'settings-back') { settingsOpen = false; renderMenu(); }
     else if (action.startsWith('upgrade-')) upgrade(action.slice(8));
     else if (action.startsWith('hero-')) { selectedHero = Number(action.slice(5)); render(); }
     else go(action);
+  });
+  app.addEventListener('input', event => {
+    const input = event.target.closest('[data-volume]');
+    if (!input) return;
+    const name = input.dataset.volume;
+    if (!(name in volumes)) return;
+    volumes[name] = clamp(Number(input.value) || 0, 0, 100);
+    input.closest('label').querySelector('output').textContent = `${volumes[name]}%`;
+    applyVolumes();
+    try { localStorage.setItem('blackstone-volumes', JSON.stringify(volumes)); } catch (_) { /* Keep this session's settings. */ }
   });
   let lastHoverSound = 0;
   app.addEventListener('pointerover', event => {
