@@ -1,0 +1,13 @@
+{
+  "status": "candidate",
+  "source": "new procedural geometry; no previous module sprites reused",
+  "role": "fixed foreground framing",
+  "files": [
+    "blackstone_foreground_monolith_left_c.png",
+    "blackstone_foreground_monolith_right_d.png"
+  ],
+  "dimensions": [
+    1024,
+    1536
+  ]
+}

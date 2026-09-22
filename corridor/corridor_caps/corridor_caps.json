@@ -1,0 +1,32 @@
+{
+  "status": "candidate",
+  "tile_size": [
+    1024,
+    1024
+  ],
+  "floor_top_y": 790,
+  "portal_floor_overlap_px": 45,
+  "layer_order": [
+    "floor",
+    "blocker",
+    "portal"
+  ],
+  "world_contract": {
+    "left_cap_tile": 0,
+    "right_cap_tile": 5,
+    "corridor_width_tiles": 6,
+    "floor_repeat_x": true
+  },
+  "modules": [
+    {
+      "id": "cap_left",
+      "file": "blackstone_corridor_cap_left_a_1024.png",
+      "open_side": "right"
+    },
+    {
+      "id": "cap_right",
+      "file": "blackstone_corridor_cap_right_b_1024.png",
+      "open_side": "left"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "status": "candidate",
+  "source_policy": "assembled only from approved BG20/BG40 modules",
+  "layer_order": [
+    "playfield",
+    "endpoint_blockers",
+    "portals",
+    "foreground_frame"
+  ],
+  "files": {
+    "blocker_left": "blackstone_blocker_left_a_1024.png",
+    "blocker_right": "blackstone_blocker_right_b_1024.png",
+    "frame_left": "blackstone_foreground_frame_left_a.png",
+    "frame_right": "blackstone_foreground_frame_right_b.png"
+  }
+}

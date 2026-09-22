@@ -1,0 +1,43 @@
+{
+  "layer": "BG40_MIDGROUND",
+  "parallaxX": 0.55,
+  "repeat": false,
+  "placement": {
+    "minimumSpacingPx": 1150,
+    "sameVariantCooldown": 2,
+    "maxVisibleAtOnce": 2
+  },
+  "modules": [
+    {
+      "id": "blackstone_bg40_buttress_a",
+      "file": "blackstone_bg40_buttress_a.png",
+      "weight": 0.8,
+      "scale": [
+        0.38,
+        0.55
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "blackstone_bg40_overhang_b",
+      "file": "blackstone_bg40_overhang_b.png",
+      "weight": 0.7,
+      "scale": [
+        0.45,
+        0.65
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "blackstone_bg40_wallnode_c",
+      "file": "blackstone_bg40_wallnode_c.png",
+      "weight": 1.0,
+      "scale": [
+        0.38,
+        0.58
+      ],
+      "status": "candidate",
+      "anchor": "bottom"
+    }
+  ]
+}

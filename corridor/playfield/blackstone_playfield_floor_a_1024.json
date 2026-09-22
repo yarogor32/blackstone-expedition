@@ -1,0 +1,17 @@
+{
+  "id": "blackstone_playfield_floor_a",
+  "status": "candidate",
+  "role": "PLAYFIELD",
+  "size": [
+    1024,
+    1024
+  ],
+  "repeat": {
+    "x": true,
+    "y": false,
+    "mirrored": false
+  },
+  "edge_contract": "left and right columns are pixel-identical",
+  "collision": "separate data layer; stable horizontal walk line",
+  "notes": "Opaque Blackstone floor strip with transparent space above; no baked props or background."
+}

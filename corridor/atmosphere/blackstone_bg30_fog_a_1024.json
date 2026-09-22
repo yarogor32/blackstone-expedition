@@ -1,0 +1,12 @@
+{
+  "id": "blackstone_bg30_fog_a",
+  "width": 1024,
+  "height": 1024,
+  "wrapX": "repeat",
+  "wrapY": "clamp",
+  "mirrored": false,
+  "parallaxX": 0.32,
+  "atlas": false,
+  "alphaMax": 20,
+  "status": "accepted"
+}

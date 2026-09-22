@@ -1,0 +1,13 @@
+{
+  "id": "blackstone_bg10_deepplanes_c",
+  "width": 1024,
+  "height": 1024,
+  "wrapX": "repeat",
+  "wrapY": "clamp",
+  "mirrored": false,
+  "parallaxX": 0.1,
+  "filter": "linear",
+  "atlas": false,
+  "status": "accepted",
+  "source": "blackstone_bg10_deepplanes_c_source.png"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "blackstone_bg20_pylon_a",
+  "layer": "BG20_STRUCTURES",
+  "width": 1024,
+  "height": 1536,
+  "transparent": true,
+  "repeat": false,
+  "parallaxX": 0.2,
+  "scaleRange": [
+    0.42,
+    0.62
+  ],
+  "minimumSpacingPx": 1800,
+  "status": "accepted"
+}

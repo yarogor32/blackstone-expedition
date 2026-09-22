@@ -1,0 +1,52 @@
+{
+  "layer": "BG20_STRUCTURES",
+  "parallaxX": 0.2,
+  "repeat": false,
+  "placement": {
+    "minimumSpacingPx": 1600,
+    "sameVariantCooldown": 3,
+    "maxVisibleAtOnce": 3
+  },
+  "modules": [
+    {
+      "id": "blackstone_bg20_pylon_a",
+      "file": "blackstone_bg20_pylon_a.png",
+      "weight": 1.0,
+      "scale": [
+        0.42,
+        0.62
+      ],
+      "status": "accepted"
+    },
+    {
+      "id": "blackstone_bg20_span_b",
+      "file": "blackstone_bg20_span_b.png",
+      "weight": 0.8,
+      "scale": [
+        0.42,
+        0.58
+      ],
+      "status": "accepted"
+    },
+    {
+      "id": "blackstone_bg20_aperture_c",
+      "file": "blackstone_bg20_aperture_c.png",
+      "weight": 0.35,
+      "scale": [
+        0.28,
+        0.42
+      ],
+      "status": "accepted"
+    },
+    {
+      "id": "blackstone_bg20_ribs_d",
+      "file": "blackstone_bg20_ribs_d.png",
+      "weight": 0.9,
+      "scale": [
+        0.38,
+        0.55
+      ],
+      "status": "accepted"
+    }
+  ]
+}
