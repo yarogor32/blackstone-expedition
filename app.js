@@ -3,6 +3,11 @@
 
   const app = document.querySelector('#app');
   const audio = document.querySelector('#music');
+  const supplies = window.Supplies;
+  const inventory = supplies.inventory;
+  const expeditionCrew = [{id:'ranger',name:'Aeldari Ranger',rank:3,...window.EXPEDITION_METABOLISM.ranger}];
+  let expeditionReport = null;
+  let mapOpen = false;
   const names = {ship:'Rogue Trader Yacht', docks:'Docks', bar:'Tavern', market:'Market', temple:'Shrine', workshop:'Workshops'};
   const places = {
     ship:['The crew refuge and expedition planning room.', 'Plan Expedition', 'Crew Rest'],
@@ -23,10 +28,10 @@
     return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   }
   function greet(place) {
-    const choices = [1,2,3].filter(n => n !== lastGreetings[place]);
+    const choices = Object.keys(window.NPC_LOCALES.en).filter(key => key.startsWith(`${place}.greeting.`) && key !== lastGreetings[place]);
     const next = choices[Math.floor(Math.random() * choices.length)];
     lastGreetings[place] = next;
-    dialogueKeys[place] = `${place}.greeting.${next}`;
+    dialogueKeys[place] = next;
   }
   let greetedBuildings = {};
   try { greetedBuildings = JSON.parse(localStorage.getItem('blackstone-npc-greeted') || '{}') || {}; } catch (_) {}
@@ -44,9 +49,6 @@
     }
   }
   function showGreeting(place) {
-    if (greetedBuildings[place]) return;
-    greetedBuildings[place] = true;
-    saveGreetings();
     greet(place);
     const portrait = app.querySelector('.npc-portrait');
     const bubble = document.createElement('section');
@@ -60,7 +62,7 @@
       bubble.classList.add('visible');
     });
     clearTimeout(greetingTimer);
-    greetingTimer = setTimeout(dismissGreeting, 6500);
+    greetingTimer = setTimeout(dismissGreeting, place === 'market' ? 5000 : 6500);
   }
   const heroes = [
     {name:'Aeldari Ranger', file:'aeldari-ranger', role:'Mobile ranged fighter', positions:'2–4', moves:['Shuriken Catapult — targets 2–4','Swift Step — reposition and gain defense','Foresight — helps an ally evade the next hit'], trait:'Needs food at camp. Severe injuries require treatment at base.', rest:'Rogue Trader Yacht', available:true},
@@ -69,8 +71,9 @@
     {name:'Drukhari Wych', file:'drukhari-wych', role:'Arena gladiator / Evasion'}
   ];
   const buildingOrder = ['temple','workshop','bar','market','ship','docks'];
-  const buildingLevel = Object.fromEntries(buildingOrder.map(name => [name,1]));
+  const buildingLevel = Object.fromEntries(buildingOrder.map(name => [name,Math.max(1,Math.min(3,inventory.state.buildingLevels[name]||1))]));
   const effectFiles = {
+    breachExplode:'BreachExplode.wav', chestOpen:'Chest_open.wav', purchase:'Purchase.wav',
     buildingUpgrade:"BuildingUpgrade.mp3",
     rangerHit:"Ranger_GotHit.wav", rangerDeath:'Ranger_Death2.wav', rangerShoot:'Ranger_Shoot.wav',
     tyranidDeath:'Tyranyd_Death.wav', tyranidHit1:'Tyranyd_GotHit.wav', tyranidHit2:'Tyranyd_GotHit2.wav',
@@ -166,7 +169,10 @@
 
   function updateMusicControl() {
     const control = document.querySelector('[data-action="sound"]');
-    if (control) control.textContent = musicLabel();
+    if (control) {
+      if(control.classList.contains('hub-music')){control.title=musicLabel();control.setAttribute('aria-label',musicLabel());control.setAttribute('aria-pressed',String(soundEnabled));control.classList.toggle('muted',!soundEnabled);}
+      else control.textContent = musicLabel();
+    }
     const hint = document.querySelector('.menu-hint');
     if (hint) hint.textContent = !soundEnabled ? 'Menu music is off.' : audio.paused ? 'Click anywhere to start the menu music.' : 'Menu music is playing.';
   }
@@ -260,6 +266,7 @@
       setTimeout(() => {
         overlay.remove();
         hubLoading = false;
+        if (expeditionReport) { supplies.open({mode:'summary',summary:expeditionReport}); expeditionReport=null; }
       }, 2300);
     }));
   }
@@ -287,15 +294,20 @@
       overlay.remove();
       keys.clear();
       hubLoading = false;
+      if (inventory.run?.defeated) { mission.defeated=true;go('hub'); }
+      else showLoot();
     }, 2300);
   }
 
   function go(destination) {
     if (hubLoading) return;
+    if(destination==='mission'&&!inventory.run&&!expeditionCrew.some(hero=>!inventory.resting(hero.id))){
+      const panel=app.querySelector('.portal-panel, .building-panel');if(panel&&!panel.querySelector('.rest-warning'))panel.insertAdjacentHTML('afterbegin','<p class="rest-warning" role="alert">All crew members are resting. Cancel a rest assignment or recruit another companion before departure.</p>');return;
+    }
     if (buildingEffects[page] && destination !== page) fadeEffect(buildingEffects[page]);
     if (page === 'hub' && buildingEffects[destination]) playEffect(buildingEffects[destination]);
     if (page === 'bar' && destination === 'hub') playEffect('barExit');
-    if (page === 'portals' && destination === 'mission') {
+    if (['docks','portals'].includes(page) && destination === 'mission') {
       greetedBuildings = {};
       saveGreetings();
       playEffect('teleportOut');
@@ -303,9 +315,13 @@
     }
     if (page === 'mission' && destination === 'hub') {
       const walkingIntoPortal = !!mission?.entering;
+      if (!walkingIntoPortal && !mission?.fleeing && !mission?.defeated && !payPortalEnergy()) return;
       if (!walkingIntoPortal) playEffect('teleportOut');
     }
     const fromMission = page === 'mission';
+    if (fromMission && destination !== 'mission') {
+      expeditionReport = inventory.finish(!!mission?.defeated,{fled:!!mission?.fleeing});
+    }
     if (page === 'mission' && destination !== 'mission') {
       mission?.stopCombat?.();
       combatEffectNames.forEach(name=>fadeEffect(name));
@@ -317,6 +333,7 @@
       return;
     }
     if (destination === 'mission' && page !== 'mission') {
+      inventory.begin(expeditionCrew);
       enterMission();
       return;
     }
@@ -328,13 +345,17 @@
   function upgrade(place) {
     if (buildingLevel[place] < 3) {
       buildingLevel[place]++;
+      inventory.state.buildingLevels[place]=buildingLevel[place];inventory.save();
       playEffect("buildingUpgrade");
     }
     render();
   }
 
+  function renderBaseControls(){return `<nav class="hub-controls" aria-label="Hub settings"><button class="expedition-icon" data-action="options" aria-label="Options" title="Options">${window.CombatUI.icon('gear')}</button><button class="expedition-icon hub-music ${soundEnabled?'':'muted'}" data-action="sound" aria-label="${musicLabel()}" title="${musicLabel()}" aria-pressed="${soundEnabled}"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M16 28V10l16-4v18M16 15l16-4"/><ellipse cx="11" cy="29" rx="5" ry="4"/><ellipse cx="27" cy="25" rx="5" ry="4"/><path class="music-slash" d="M6 5L35 35"/></svg></button></nav>`;}
+  function renderBaseStock(){return `<div class="base-stock" aria-label="Supplies"><span title="Thrones">${window.CombatUI.icon('coins')}<span>Thrones</span><b>${inventory.state.credits.toLocaleString('en')}</b></span>${[['ration','food'],['cell','cell'],['cutter','cargo'],['key','gear']].map(([id,icon])=>`<span title="${escapeText(supplies.t(id)[0])}">${window.CombatUI.icon(icon)}<span>${escapeText(supplies.t(id)[0])}</span><b>${inventory.count(id)}</b></span>`).join('')}</div>`;}
+
   function renderTop() {
-    return `<header class="top"><div class="brand">Blackstone Expedition · Precipice</div><div class="hud">Party: Aeldari Ranger · Mission Playtest</div><div class="top-actions">${button('Options', 'options', {small:true})}${button(musicLabel(), 'sound', {small:true})}</div></header>`;
+    return `${renderBaseControls()}${renderBaseStock()}`;
   }
 
   function volumeControls() {
@@ -371,7 +392,7 @@
     const controls = volumeControls();
     const content = settingsOpen
       ? `<div class="settings-panel"><h2>Settings</h2><p>Sound levels</p>${controls}<nav class="menu-nav settings-nav">${button(musicLabel(),'sound')}${button('Back to Menu','settings-back')}</nav></div>`
-      : `<p>Enter the fortress from Precipice. The first passage is ready to explore.</p><nav class="menu-nav">${button('New Expedition','hub')}${button('Settings','settings')}${button('Continue · Coming Soon','', {disabled:true})}</nav>`;
+      : `<p>Enter the fortress from Precipice. The first passage is ready to explore.</p><nav class="menu-nav">${inventory.run?button('Resume Expedition','mission'):button('Enter Precipice','hub')}${button('Settings','settings')}</nav>`;
     app.innerHTML = `<section class="scene" style="background-image:url('backgrounds/main-menu.png')"><div class="menu-shell"><h1 class="game-logo"><img src="branding/blackstone-expedition-logo.png" alt="Blackstone Expedition"></h1>${content}<p class="menu-hint">Click anywhere to start the menu music.</p></div><aside class="parchment"><h2>Captain's Log</h2><p>Precipice is the port near the fortress. Visit the docks, select a portal, and guide the Ranger through the passage.</p></aside></section>`;
     updateMusicControl();
   }
@@ -393,7 +414,7 @@
       return `<div class="hub-sprite" style="${style}"><img src="${src}" alt="" style="${imageStyle}"></div>`;
     }).join('');
     const debris = `<div class="hub-debris-field" aria-hidden="true"><img src="hub/debris-1.png" alt=""><img src="hub/debris-2.png" alt=""><img src="hub/debris-3.png" alt=""><img src="hub/debris-1.png" alt=""><img src="hub/debris-2.png" alt=""></div>`;
-    app.innerHTML = `${renderTop()}<section class="stage"><div class="map">${debris}${layers}<div class="map-label">Precipice</div><div class="map-tip">Select the Docks to enter the fortress</div></div></section>`;
+    app.innerHTML = `<section class="stage hub-layout"><div class="map">${debris}${layers}<div class="map-tip">Select the Docks to enter the fortress</div></div><div class="map-label">Precipice</div>${window.GameHUD.hub(inventory,{...expeditionCrew[0],...inventory.state.heroProfiles.ranger})}${renderBaseControls()}${renderBaseStock()}</section>`;
   }
 
   function renderHire() {
@@ -402,23 +423,41 @@
     app.innerHTML = `${renderTop()}<section class="scene" style="background-image:url('backgrounds/recruitment.png')"><div class="hire-wrap"><h2>Recruit Companions</h2><p class="caption">The Aeldari Ranger is available for this mission test. Other classes are coming soon.</p><div class="party"><div class="slot">Aeldari Ranger</div><div class="slot">Coming Soon</div><div class="slot">Coming Soon</div><div class="slot">Coming Soon</div></div><div class="hire-layout"><div class="roster">${roster}</div><div class="detail"><img src="portraits/${hero.file}.png" alt="Aeldari Ranger"><div><h3>${hero.name}</h3><dl class="facts"><dt>Role</dt><dd>${hero.role}</dd><dt>Ranks</dt><dd>${hero.positions}</dd><dt>Trait</dt><dd>${hero.trait}</dd><dt>Recovery</dt><dd>${hero.rest}</dd></dl><p class="tag">Starting abilities</p><ul class="moves">${hero.moves.map(move => `<li>${move}</li>`).join('')}</ul>${button('Selected for Expedition','',{disabled:true})}</div></div></div><div class="hire-back">${button('Back to Tavern','bar',{small:true})}</div></div></section>`;
   }
 
+  let selectedRestSlot=null;
+  function renderTreatment(place){
+    if(!['bar','temple','ship'].includes(place))return '';
+    const slots=inventory.state.restSlots[place],level=buildingLevel[place];
+    return `<div class="treatment-panel"><h3>Crew Rest <small>${slots.filter(Boolean).length} / ${level}</small></h3><p class="caption">Returns after the next expedition · ${window.Morale.rules.treatmentCost} Thrones per hero · Restores morale and clears afflictions.</p><div class="rest-slots">${Array.from({length:3},(_,i)=>{
+      const occupant=expeditionCrew.find(h=>h.id===slots[i]?.id);
+      return i>=level?`<div class="rest-slot locked" title="Upgrade to unlock"><span>◇</span><small>Level ${i+1}</small></div>`:occupant?`<button class="rest-slot occupied" data-action="rest-cancel-${i}" title="Cancel rest and refund payment">${window.GameHUD.face(occupant)}<small>Resting · Cancel</small></button>`:`<button class="rest-slot" data-action="rest-select-${i}" aria-label="Choose hero for rest slot ${i+1}"><span>＋</span><small>Choose hero</small></button>`;
+    }).join('')}</div>${selectedRestSlot!==null?`<div class="rest-roster"><h4>Choose a companion</h4>${expeditionCrew.map(hero=>{
+      const allowed=inventory.restPlaces(hero).includes(place),resting=inventory.resting(hero.id),poor=inventory.state.credits<window.Morale.rules.treatmentCost;
+      return `<button class="rest-candidate" data-action="rest-assign-${hero.id}" ${!allowed||resting||poor?'disabled':''}>${window.GameHUD.face(hero)}<span>${escapeText(hero.name)}<small>${!allowed?'Rest available at '+inventory.restPlaces(hero).map(p=>names[p]).join(', '):resting?'Already resting':poor?'Not enough Thrones':'Morale '+(inventory.state.heroProfiles[hero.id]?.morale??100)+'/100'}</small></span></button>`;
+    }).join('')}</div>`:''}</div>`;
+  }
+  function refreshRest(){
+    app.querySelector('.treatment-panel').outerHTML=renderTreatment(page);
+    app.querySelector('.base-stock').outerHTML=renderBaseStock();
+  }
+
   function renderBuilding(place) {
+    selectedRestSlot=null;
     const details = places[place];
-    const actions = details.slice(1).map(label => {
-      const action = label === 'Recruit Companions' ? 'hire' : label === 'Portal Map' ? 'portals' : '';
+    const actions = details.slice(1).filter(label=>!['Crew Rest','Rest','Restore Confidence','Portal Map'].includes(label)).map(label => {
+      const action = label === 'Recruit Companions' ? 'hire' : label === 'Portal Map' ? 'portals' : label === 'Buy Supplies' ? 'market-supplies' : '';
       return button(action ? label : `${label} · Coming Soon`, action, {disabled:!action});
     }).join('');
     const level = buildingLevel[place];
-    app.innerHTML = `${renderTop()}<section class="scene building-scene" style="background-image:url('interiors/${place}.png')"><div class="npc-portrait"><img src="npcs/${place}.png" alt="${escapeText(npcText(place+'.name'))}"></div><div class="building-panel"><div class="building-panel-top"><div class="tag">Precipice Location · Level ${level}</div>${button('Back to Precipice','hub',{small:true})}</div><h2>${names[place]}</h2><p class="building-description">${details[0]}</p>${actions}<div class="upgrade-box"><strong>Building Level ${level} / 3</strong><p class="caption">Visual upgrade preview.</p>${button(level === 3 ? 'Maximum Level' : 'Upgrade Building',`upgrade-${place}`,{disabled:level === 3})}</div></div></section>`;
+    app.innerHTML = `${renderTop()}<section class="scene building-scene" data-building="${place}" style="background-image:url('interiors/${place}.png')"><div class="npc-portrait"><img src="npcs/${place === 'docks' ? 'docks-complete' : place}.png" alt="${escapeText(npcText(place+'.name'))}"></div><div class="building-panel"><div class="building-panel-top"><div class="tag">Precipice Location · Level ${level}</div>${button('Back to Precipice','hub',{small:true})}</div><h2>${names[place]}</h2><p class="building-description">${details[0]}</p>${actions}${place==='docks'?portalChoices():''}${renderTreatment(place)}<div class="upgrade-box"><strong>Building Level ${level} / 3</strong><p class="caption">${['bar','temple','ship'].includes(place)?`Rest capacity: ${level} / 3 slots. Upgrading adds one slot.`:'Visual upgrade preview.'}</p>${button(level === 3 ? 'Maximum Level' : 'Upgrade Building',`upgrade-${place}`,{disabled:level === 3})}</div></div></section>`;
     showGreeting(place);
   }
 
-  function renderPortals() {
-    app.innerHTML = `${renderTop()}<section class="scene portal-map" style="background-image:url('interiors/docks.png')"><div class="portal-panel"><div class="tag">Docks · Portal Map</div><h2>Choose a Portal</h2><p>The fortress shifts after every expedition. The First Passage is open for this test.</p><div class="portal-grid"><button type="button" class="portal-card available" data-action="mission"><span class="portal-mark">◇</span><strong>The First Passage</strong><small>Corridor · Enter and reach the far portal</small><em>ENTER</em></button><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div></div>${button('Back to Docks','docks',{small:true})}</div></section>`;
-  }
+  function portalChoices(){return `<label class="portal-difficulty">Difficulty <select data-expedition-difficulty>${Object.keys(window.EXPEDITION_DIFFICULTIES).map(id=>`<option value="${id}" ${inventory.state.difficulty===id?'selected':''}>${supplies.t(id)}</option>`).join('')}</select><small>Fleeing loss: ${window.EXPEDITION_DIFFICULTIES[inventory.state.difficulty].retreatLoss*100}%</small></label><div class="portal-grid"><button type="button" class="portal-card available" data-action="mission"><span class="portal-mark">◇</span><strong>The First Passage</strong><small>Corridor · Enter and reach the far portal</small><em>ENTER PORTAL</em></button><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div></div>`;}
+  function renderPortals(){page='docks';renderBuilding('docks');}
 
   function renderMission() {
-    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="structures" class="world"><img class="module span" src="corridor/modules/bg20/blackstone_bg20_span_b.png" alt=""><img class="module ribs" src="corridor/modules/bg20/blackstone_bg20_ribs_d.png" alt=""><img class="module pylon" src="corridor/modules/bg20/blackstone_bg20_pylon_a.png" alt=""><img class="module aperture" src="corridor/modules/bg20/blackstone_bg20_aperture_c.png" alt=""></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-top"><span>THE FIRST PASSAGE</span><span>Reach the far portal</span>${button('Options','options',{small:true})}${button(musicLabel(),'sound',{small:true})}</div><div class="mission-bottom"><span>A / D or ← / → to move · release to idle</span>${button('Return to Precipice','hub',{small:true})}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="structures" class="world"><img class="module span" src="corridor/modules/bg20/blackstone_bg20_span_b.png" alt=""><img class="module ribs" src="corridor/modules/bg20/blackstone_bg20_ribs_d.png" alt=""><img class="module pylon" src="corridor/modules/bg20/blackstone_bg20_pylon_a.png" alt=""><img class="module aperture" src="corridor/modules/bg20/blackstone_bg20_aperture_c.png" alt=""></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-location">THE FIRST PASSAGE</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    mountResourceHUD();
     missionReady = startMission();
   }
 
@@ -429,14 +468,22 @@
     else if (page === 'hire') renderHire();
     else if (page === 'portals') renderPortals();
     else if (page === 'mission') renderMission();
+    else if (page === 'market-supplies') supplies.shop(app,null,()=>go('market'),expeditionCrew,()=>playEffect('purchase'));
     else renderBuilding(page);
   }
 
   app.addEventListener('click', event => {
     const target = event.target.closest('[data-action]');
-    if (!target || target.disabled) return;
+    if (!target || target.disabled || hubLoading) return;
     const action = target.dataset.action;
-    if (action === 'sound') toggleSound();
+    if(action.startsWith('rest-select-')){selectedRestSlot=Number(action.slice(12));refreshRest();return;}
+    if(action.startsWith('rest-cancel-')){inventory.cancelRest(page,Number(action.slice(12)));selectedRestSlot=null;refreshRest();return;}
+    if(action.startsWith('rest-assign-')){const hero=expeditionCrew.find(h=>h.id===action.slice(12));if(hero&&selectedRestSlot!==null)inventory.assignRest(page,selectedRestSlot,hero);selectedRestSlot=null;refreshRest();return;}
+    if (action === 'flee') {if(mission?.combat)document.querySelector('.combat-controls-proxy [data-cmd="flee"]')?.click();else fleeExpedition();}
+    else if (action === 'location-map') openLocationMap();
+    else if (action === 'map-close') closeLocationMap();
+    else if (action === 'inventory') {if(mission?.combat)document.querySelector('.combat-controls-proxy [data-cmd="inventory"]')?.click();else openInventory();}
+    else if (action === 'sound') toggleSound();
     else if (action === 'options') openOptions();
     else if (action === 'options-close') closeOptions();
     else if (action === 'options-music') {
@@ -462,6 +509,11 @@
     applyVolumes();
     try { localStorage.setItem('blackstone-volumes', JSON.stringify(volumes)); } catch (_) { /* Keep this session's settings. */ }
   });
+  app.addEventListener('change',event=>{
+    if(event.target.matches('[data-expedition-difficulty]')&&!inventory.run&&window.EXPEDITION_DIFFICULTIES[event.target.value]){
+      inventory.state.difficulty=event.target.value;inventory.save();event.target.closest('.portal-difficulty').querySelector('small').textContent=`Fleeing loss: ${window.EXPEDITION_DIFFICULTIES[inventory.state.difficulty].retreatLoss*100}%`;
+    }
+  });
   let lastHoverSound = 0;
   app.addEventListener('pointerover', event => {
     const building = event.target.closest?.('.map .landmark');
@@ -479,7 +531,9 @@
   });
 
   addEventListener('keydown', event => {
-    if (page !== 'mission' || optionsOpen) return;
+    if (page !== 'mission' || optionsOpen || mapOpen || hubLoading) return;
+    if (event.key.toLowerCase() === 'i' && !supplies.isOpen && !mission?.combat && !mission?.entering) {event.preventDefault();openInventory();return;}
+    if (supplies.isOpen) return;
     const key = event.key.toLowerCase();
     if (['a','d','arrowleft','arrowright'].includes(key)) {
       keys.add(key);
@@ -490,7 +544,7 @@
   addEventListener('blur', () => keys.clear());
   app.addEventListener('pointerdown', event => {
     const button = event.target.closest('[data-direction]');
-    if (button && page === 'mission' && !optionsOpen) {
+    if (button && page === 'mission' && !optionsOpen && !mapOpen && !supplies.isOpen && !hubLoading) {
       keys.add(button.dataset.direction === 'left' ? 'arrowleft' : 'arrowright');
       button.setPointerCapture(event.pointerId);
       event.preventDefault();
@@ -510,12 +564,129 @@
   const idleAtlas = loadImage('sprites/ranger-idle.png');
   const encounterImages = [window.combatImages.raider,window.combatImages.gunner];
 
+
+  function fleeExpedition() {
+    if(page!=='mission'||hubLoading||mission?.entering||mission?.defeated)return;
+    mission.fleeing=true;
+    go('hub');
+  }
+  function mountResourceHUD() {
+    const hud=document.createElement('div');hud.className='expedition-resources';hud.id='expeditionResources';
+    document.querySelector('#mission').append(hud);updateResourceHUD();
+  }
+  function updateResourceHUD() {
+    const hud=document.querySelector('#expeditionResources'),run=inventory.run;if(!hud||!run)return;
+    hud.classList.toggle('energy-low',run.energy<25);
+    const nav=(action,id,label,disabled=false)=>`<button class="expedition-icon" data-action="${action}" aria-label="${label}" title="${label}" ${disabled?'disabled':''}>${window.CombatUI.icon(id)}</button>`;
+    hud.innerHTML=`<nav class="expedition-tabs" aria-label="Expedition panels">${nav('flee','exit',`Flee — lose ${window.EXPEDITION_DIFFICULTIES[run.difficulty].retreatLoss*100}% of loot`,!!mission?.combat)}${nav('inventory','bag','Inventory [I]',!!mission?.combat)}${nav('options','gear','Options')}${nav('location-map','map','Location map')}</nav>${window.GameHUD.party(run.party)}<div class="expedition-stock"><span title="Equipment energy">${window.CombatUI.icon('energy')}<b class="energy-value">${Math.ceil(run.energy)}/100</b></span><span title="Provisions">${window.CombatUI.icon('food')}<b>${inventory.count('ration')}</b></span><span title="Power cells">${window.CombatUI.icon('cell')}<b>${inventory.count('cell')}</b></span><span title="Thrones">${window.CombatUI.icon('coins')}<b>${inventory.state.credits}</b></span><span title="Backpack slots">${window.CombatUI.icon('cargo')}<b>${inventory.state.slots.filter(Boolean).length}/16</b></span></div>`;
+  }
+
+  function openLocationMap() {
+    if(hubLoading||mission?.entering||mapOpen)return;
+    mapOpen=true;keys.clear();
+    const dialog=document.createElement('dialog');dialog.className='location-map-dialog';
+    dialog.setAttribute('aria-label','Location Map');
+    dialog.innerHTML=`<header><h2>Location Map</h2>${button('Close','map-close',{small:true})}</header><div class="map-placeholder"><strong>The First Passage</strong><p>No survey data available yet. Explored rooms, passages and portals will appear here.</p></div>`;
+    dialog.addEventListener('cancel',event=>{event.preventDefault();closeLocationMap();});
+    app.append(dialog);dialog.showModal();
+  }
+  function closeLocationMap() {
+    const dialog=app.querySelector('.location-map-dialog');dialog?.close();dialog?.remove();mapOpen=false;keys.clear();
+  }
+  function openInventory(combat=false,refresh) {
+    if(hubLoading||mission?.entering)return;
+    keys.clear();supplies.open({combat,onClose:()=>{keys.clear();inventory.save();updateResourceHUD();refresh?.();}});
+  }
+  function showLoot() {
+    if(!inventory.run?.pendingLoot.length)return;
+    keys.clear();supplies.open({mode:'loot',onClose:()=>{keys.clear();updateResourceHUD();}});
+  }
+  function expeditionEvent(title,text,actions) {
+    keys.clear();supplies.open({mode:'event',event:{title,text,actions},onClose:()=>{keys.clear();updateResourceHUD();}});
+  }
+  function exhaustParty(fraction) {
+    for(const hero of inventory.run.party)if(hero.hp>0)hero.hp=Math.max(1,hero.hp-Math.ceil(hero.maxHp*fraction));
+    inventory.save();updateResourceHUD();
+  }
+  function payPortalEnergy() {
+    const run=inventory.run;
+    if(run.energy>=10){run.energy-=10;inventory.save();return true;}
+    expeditionEvent('Portal Power Depleted','The return portal needs 10 energy. Use a power cell, or hand-charge the emergency converter (10% maximum HP per crew member, minimum 1 HP remains).',[
+      {label:'Use Power Cell',get disabled(){return !inventory.count('cell');},run:()=>{inventory.use('cell');updateResourceHUD();}},
+      {label:'Hand-charge Converter',run:()=>{run.energy=Math.min(100,run.energy+10);exhaustParty(.1);}},
+      {label:'Back',run:()=>{}}
+    ]);return false;
+  }
+  function updateExpedition(state,unit) {
+    const run=inventory.run;if(!run||run.defeated)return;
+    if(!state.nextBark){state.nextBark=performance.now()+60000;}else if(performance.now()>state.nextBark){window.ExpeditionSpeech.say(run.party.find(u=>u.hp>0),'neutral');state.nextBark=performance.now()+60000;}
+    const progress=state.x/unit,segment=Math.floor(Math.max(0,progress-.48)/.4);
+    if(segment>run.visited){
+      const armour=run.party.filter(u=>u.hp>0).reduce((n,u)=>n+(u.energy||0),0);
+      run.energy=Math.max(0,run.energy-(segment-run.visited)*(6+armour));
+      run.visited=segment;run.progress=progress;inventory.save();updateResourceHUD();
+    }
+    // Save position periodically; walking back never generates additional cargo.
+    if(!state.lastCheckpoint||performance.now()-state.lastCheckpoint>1000){run.progress=progress;inventory.save();state.lastCheckpoint=performance.now();}
+    for(const [id,position] of [['meal1',2.85],['meal2',5.15]]){
+      if(progress<position||run.events[id])continue;
+      const finish=()=>{run.events[id]=true;inventory.save();updateResourceHUD();};
+      if(id.startsWith('meal')){
+        const need=inventory.foodDemand();
+        if(!need){inventory.feed(true);finish();return;}
+        expeditionEvent(supplies.t('foodEvent'),`${need} ration(s) required for this crew. Space Marines eat at one quarter of the standard rate. ${supplies.t('hungerCost')}`,[
+          {label:`Distribute ${need} ration(s)`,get disabled(){return inventory.count('ration')<need;},run:()=>{if(inventory.feed(true))finish();}},
+          {label:supplies.t('hungry'),run:()=>{inventory.feed(false);finish();}}
+        ]);
+      }
+      return;
+    }
+  }
+
+  function mountPassageProps(viewport) {
+    const layer=document.createElement('div');layer.id='passageProps';layer.className='passage-props';
+    layer.innerHTML=['obstacle','cache'].map(id=>`<div class="passage-prop ${id}" data-prop="${id}"><img src="corridor/props/${id === 'obstacle' ? 'obstacle-blackstone' : id}.png" alt="${supplies.t(id)}"><button class="prop-interact" aria-label="${supplies.t(id==='obstacle'?'breakIcon':'openIcon')}" title="${supplies.t(id==='obstacle'?'breakIcon':'openIcon')}"><svg viewBox="0 0 40 40" aria-hidden="true">${id==='obstacle'?'<path d="M8 31L24 12l5 4L13 36z M17 9l6-6 13 10-6 7z"/>':'<path d="M24 5a8 8 0 1 0 0 16 8 8 0 0 0 0-16z M19 19L5 33l3 3 5-5 4 2 3-3-3-3 6-6 M25 10h1"/>'}</svg></button></div>`).join('');
+    viewport.append(layer);
+    layer.querySelectorAll('[data-prop]').forEach(prop=>{
+      const button=prop.querySelector('button');
+      button.addEventListener('click',()=>interactPassageProp(prop));
+    });
+  }
+  function interactPassageProp(prop) {
+    const run=inventory.run,id=prop.dataset.prop;
+    if(!run||run.events[id]||!prop.classList.contains('near')||supplies.isOpen||optionsOpen||mapOpen||mission?.combat||hubLoading)return;
+    const finish=()=>{run.events[id]=true;inventory.save();updateResourceHUD();};
+    if(id==='obstacle')expeditionEvent(supplies.t('obstacle'),supplies.t('obstacleHint'),[
+      {label:supplies.t('breach'),get disabled(){return !inventory.count('cutter');},run:()=>{if(inventory.remove('cutter',1)){playEffect('breachExplode');finish();}}},
+      {label:supplies.t('force'),run:()=>{exhaustParty(.15);finish();}},
+      {label:supplies.t('skip'),run:()=>{}}
+    ]);
+    else {
+      const loot=()=>{playEffect('chestOpen');inventory.queueLoot([{id:'credits',qty:450},{id:'relic',qty:1}]);finish();showLoot();};
+      expeditionEvent(supplies.t('cache'),supplies.t('cacheHint'),[
+        {label:supplies.t('unlock'),get disabled(){return !inventory.count('key');},run:()=>{if(inventory.remove('key',1))loot();}},
+        {label:supplies.t('forceCache'),get disabled(){return run.energy<10;},run:()=>{if(run.energy>=10){run.energy-=10;loot();}}},
+        {label:supplies.t('skip'),run:()=>{}}
+      ]);
+    }
+  }
+  function positionPassageProps(state,unit) {
+    for(const [id,pos] of [['obstacle',3.55],['cache',4.3]]){
+      const prop=state.viewport.querySelector(`[data-prop="${id}"]`);if(!prop)continue;
+      const done=!!inventory.run?.events[id];prop.hidden=done;
+      prop.style.left=(unit*pos-state.camera)+'px';
+      const near=!done&&!state.combat&&Math.abs(state.x/unit-pos)<.7;
+      prop.classList.toggle('near',near);prop.querySelector('button').disabled=!near;
+    }
+  }
+
   async function startMission() {
     const viewport = document.querySelector('#mission');
     const canvas = document.querySelector('#hero');
     const ctx = canvas.getContext('2d');
-    mission = {viewport, canvas, ctx, x:innerHeight * .48, facing:1, camera:0, animation:'idle', animationTime:0, lastTime:0, entering:false};
+    mission = {viewport, canvas, ctx, encounterDone:!!inventory.run?.encounterDone, x:innerHeight * (inventory.run?.progress??.48), facing:1, camera:0, animation:'idle', animationTime:0, lastTime:0, entering:false};
     keys.clear();
+    mountPassageProps(viewport);
     const loadingState=mission;
     const backdropSources = ['corridor/repeat/blackstone_bg10_deepplanes_c_1024.png',
       'corridor/atmosphere/blackstone_bg30_fog_a_1024.png',
@@ -534,21 +705,36 @@
       const width = viewport.clientWidth;
       const worldWidth = unit * 6;
       const maxCamera = Math.max(0, worldWidth-width);
-      const direction = (hubLoading || optionsOpen || state.combat) ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+      const direction = (hubLoading || optionsOpen || mapOpen || supplies.isOpen || state.combat) ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
       if (!state.entering && direction) {
         state.x = clamp(state.x + direction * unit * .27 * dt, unit*.29, unit*5.75);
+        if(!inventory.run?.events.obstacle)state.x=Math.min(state.x,unit*2.98);
         state.facing = direction;
       }
+      if (!hubLoading && !state.combat && !optionsOpen && !mapOpen && !supplies.isOpen && !state.entering) updateExpedition(state,unit);
       const animation = !state.entering && direction ? 'walk' : 'idle';
       if (state.animation !== animation) { state.animation = animation; state.animationTime = 0; }
       else state.animationTime += dt;
       const targetCamera = clamp(state.combat ? unit*2.05-width*.5 : state.x-width*.38, 0, maxCamera);
       state.camera += (targetCamera-state.camera) * Math.min(1,dt*8);
+      const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const cameraGoal=state.combat&&!reduced?1.065:1;
+      state.battleZoom=(state.battleZoom??1)+(cameraGoal-(state.battleZoom??1))*(1-Math.exp(-dt*4));
+      const viewGoal=state.combat&&state.viewSide&&!reduced?(state.viewSide==='party'?1:-1):0;
+      state.viewBias=(state.viewBias||0)+(viewGoal-(state.viewBias||0))*(1-Math.exp(-dt*6));
+      positionPassageProps(state,unit);
       document.querySelector('#deep').style.backgroundPosition = `${-state.camera*.10}px center`;
       document.querySelector('#structures').style.transform = `translateX(${-state.camera*.20}px)`;
       document.querySelector('#fog').style.backgroundPosition = `${-state.camera*.32}px center`;
       document.querySelector('#midground').style.transform = `translateX(${-state.camera*.55}px)`;
       for (const id of ['playfield','endcaps','foreground']) document.getElementById(id).style.transform = `translateX(${-state.camera}px)`;
+      // Screen-space transforms preserve the floor anchor; depth layers travel at different rates.
+      for(const [id,depth] of [['deep',.12],['structures',.3],['fog',.4],['midground',.6],['playfield',1],['endcaps',1],['foreground',1.4]]){
+        const layer=document.getElementById(id);
+        layer.style.transformOrigin=`${width*.5}px ${unit*846/1024}px`;
+        layer.style.scale=String(1+(state.battleZoom-1)*Math.min(depth,1));
+        layer.style.translate=`${state.viewBias*unit*.028*depth}px 0`;
+      }
       const dpr = Math.min(devicePixelRatio || 1,2);
       if (canvas.width !== Math.round(width*dpr) || canvas.height !== Math.round(unit*dpr)) {
         canvas.width = Math.round(width*dpr);
@@ -571,24 +757,30 @@
       const size = Math.min(unit*.48,410);
       const footY = unit*(846/1024);
       const screenX = state.x-state.camera;
+      if(!state.combat)window.ExpeditionSpeech?.position('ranger',width*.5+(screenX-width*.5)*state.battleZoom,footY-size*.69*state.battleZoom);
       if (!state.combat && image.complete && image.naturalWidth) {
         ctx.save();
-        ctx.translate(screenX,footY);
+        ctx.translate(width*.5+(screenX-width*.5)*state.battleZoom,footY);
+        ctx.scale(state.battleZoom,state.battleZoom);
         ctx.scale(state.facing,1);
         if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
         else window.drawRanger(ctx,image,'idle',state.animationTime,-size/2,-size*(468/512),size);
         ctx.restore();
       }
-      if (!state.combat && !state.encounterDone && state.x >= unit*1.65) {
+      if (!hubLoading && !mapOpen && !supplies.isOpen && !inventory.run?.defeated && !state.combat && !state.encounterDone && state.x >= unit*1.65) {
         state.combat = true;
         keys.clear();
         setMusic();
         state.stopCombat = window.startBlackstoneBattle({
-          party:[{id:'ranger',name:'Aeldari Ranger',rank:3}],
-          getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,size:Math.min(viewport.clientHeight*.48,410)}),
+          party:inventory.run.party,
+          getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,size:Math.min(viewport.clientHeight*.48,410),zoom:state.battleZoom,bias:state.viewBias,center:viewport.clientWidth*.5}),
+          onCameraSide:side=>{state.viewSide=side;},
           onOptions:openOptions,
-          onDefeat:()=>{state.defeated=true;setMusic();},
-          onVictory:()=>{state.victoryCue=true;setMusic();},
+          onFlee:fleeExpedition,
+          onInventory:refresh=>openInventory(true,refresh),
+          onPartyChange:party=>{if(inventory.run){inventory.run.party=party;if(party.every(u=>u.hp<=0))inventory.run.defeated=true;inventory.save();updateResourceHUD();}},
+          onDefeat:()=>{state.defeated=true;inventory.run.defeated=true;inventory.save();setMusic();},
+          onVictory:()=>{state.victoryCue=true;inventory.run.encounterDone=true;inventory.queueLoot([{id:'credits',qty:650},{id:'salvage',qty:4}]);setMusic();},
           onAttack:(unit,skill)=>{
             if(unit.id==='ranger' && ['shot','aim'].includes(skill))playEffect('rangerShoot');
             else if(unit.id==='raider')playEffect('hormagauntAttack');
@@ -601,10 +793,12 @@
           onFinish:result => {
             state.combat = false; state.animationTime = 0; state.encounterDone = true; keys.clear(); setMusic();
             if (result === 'defeat') go('hub');
+            else { inventory.run.encounterDone=true;inventory.save();updateResourceHUD();showLoot(); }
           }
         });
       }
-      if (!state.combat && !state.entering && (state.x >= unit*5.72 || state.x <= unit*.32)) {
+      if (!hubLoading && !mapOpen && !supplies.isOpen && !state.combat && !state.entering && (state.x >= unit*5.72 || state.x <= unit*.32)) {
+        if (!payPortalEnergy()) { state.x=clamp(state.x,unit*.34,unit*5.70); requestAnimationFrame(tick); return; }
         state.entering = true;
         playEffect('teleportOut');
         document.querySelector('#missionFade').classList.add('active');
@@ -625,3 +819,6 @@
     if (page === 'hub') renderHub();
   }
 })();
+
+
+

@@ -1,0 +1,9 @@
+(() => {
+  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const portraits={ranger:'aeldari-ranger','space-marine':'space-marine',human:'rogue-trader','rogue-trader':'rogue-trader',drukhari:'drukhari-wych'};
+  function face(hero){const file=portraits[hero.id]||'aeldari-ranger';return `<span class="crew-face face-${file}" role="img" aria-label="${escape(hero.name)} portrait" style="background-image:url('portraits/${file}.png')"></span>`;}
+  function bar(label,value,max,kind){const n=Math.max(0,Math.min(max,Number(value)||0));return `<div class="crew-stat ${kind}"><span>${label}</span><div class="crew-bar" role="progressbar" aria-label="${label}" aria-valuemin="0" aria-valuemax="${max}" aria-valuenow="${n}"><i style="width:${n/max*100}%"></i><b>${n} / ${max}</b></div></div>`;}
+  function party(crew){return `<div class="expedition-party" aria-label="Expedition crew">${Array.from({length:4},(_,i)=>{const u=crew[i];return u?`<article class="crew-card ${u.hp<=0?'fallen':''}" data-crew-hud="${escape(u.id)}">${face(u)}<div class="crew-card-info">${bar('HP',u.hp,u.maxHp||28,'health')}${bar('Morale',u.morale??100,u.maxMorale||100,'morale')}${u.affliction?`<span class="crew-condition" title="${escape(window.Morale.states[u.affliction]?.description||'')}">${escape(window.Morale.states[u.affliction]?.name||u.affliction)}</span>`:''}</div></article>`:`<div class="crew-card crew-vacant" aria-label="Empty party slot ${i+1}"><span>＋</span></div>`;}).join('')}</div>`;}
+  function hub(inventory,hero){return `<aside class="hub-commander" aria-label="${escape(hero.name)}, level ${hero.level||1}">${face(hero)}<div><strong>${escape(hero.name)}</strong><span>LEVEL ${hero.level||1}</span></div></aside>`;}
+  window.GameHUD={face,party,hub};
+})();

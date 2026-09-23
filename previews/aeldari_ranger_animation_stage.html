@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aeldari Ranger · animation stage</title>
+  <style>
+    :root { color-scheme: dark; font-family: Georgia, serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #060a0c; color: #d8dfdb; }
+    #stage { position: fixed; inset: 0; overflow: hidden; isolation: isolate; }
+    #deep, #fog, #floor, #structure, #sprite { position: absolute; inset: 0; }
+    #deep { z-index: 1; background: url('../corridor/repeat/blackstone_bg10_deepplanes_c_1024.png') repeat-x center / auto 100%; }
+    #structure { z-index: 2; pointer-events: none; }
+    #structure img { position: absolute; height: auto; object-fit: contain; }
+    .span { left: -5%; top: 5%; width: 58vh; filter: brightness(.54); }
+    .ribs { left: 30%; top: 8%; width: 37vh; filter: brightness(.55); }
+    .pylon { right: 11%; top: 4%; width: 33vh; filter: brightness(.68); }
+    #fog { z-index: 3; opacity: .44; background: url('../corridor/atmosphere/blackstone_bg30_fog_a_1024.png') repeat-x center / auto 100%; pointer-events: none; }
+    #floor { z-index: 4; background: url('../corridor/playfield/blackstone_playfield_floor_a_1024.png') repeat-x left bottom / 100vh 100vh; }
+    #sprite { z-index: 5; width: 100%; height: 100%; pointer-events: none; }
+    #footline { display: none; position: absolute; z-index: 6; left: 0; right: 0; top: 82%; border-top: 1px dashed #7fe9dd; opacity: .8; pointer-events: none; }
+    #stage.show-pivot #footline { display: block; }
+    #ui { position: fixed; z-index: 10; top: 16px; right: 16px; width: min(350px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; padding: 16px 18px; background: #070e12df; border: 1px solid #718a8699; box-shadow: 0 14px 40px #000b; backdrop-filter: blur(8px); }
+    h1 { margin: 0 0 4px; font-size: 21px; font-weight: normal; letter-spacing: .02em; color: #f4e5c3; }
+    .sub { margin: 0 0 15px; color: #9caca8; font: 12px/1.45 system-ui, sans-serif; }
+    #current { color: #dfecdd; font-size: 16px; }
+    #detail, #warning { margin-top: 5px; color: #9cb6b5; font: 12px/1.45 system-ui, sans-serif; }
+    #warning { color: #efc488; min-height: 1.3em; }
+    #progress { height: 4px; margin: 12px 0; background: #284147; }
+    #progress span { display: block; width: 0; height: 100%; background: #c5a263; }
+    .controls { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    button, select { color: #eee8d5; background: #14272b; border: 1px solid #67807c; font: 12px system-ui, sans-serif; padding: 7px 9px; cursor: pointer; }
+    button:hover, button:focus-visible, select:focus-visible { outline: none; border-color: #d8b978; background: #1d3638; }
+    button.active { border-color: #d8b978; color: #f6db9f; background: #30403d; }
+    .options { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 12px; color: #afc0bc; font: 12px system-ui, sans-serif; }
+    .options label { display: inline-flex; align-items: center; gap: 5px; }
+    .options input { accent-color: #c5a263; }
+    #playlist { display: grid; gap: 5px; }
+    #playlist button { text-align: left; display: flex; justify-content: space-between; gap: 10px; }
+    #playlist small { color: #97afab; white-space: nowrap; }
+    @media (max-width: 700px) { #ui { top: 8px; right: 8px; width: min(285px, calc(100vw - 16px)); padding: 11px; } h1 { font-size: 16px; } .sub { display: none; } #playlist { max-height: 28vh; overflow: auto; } }
+  </style>
+</head>
+<body>
+  <main id="stage" aria-label="Blackstone corridor animation test">
+    <div id="deep"></div>
+    <div id="structure">
+      <img class="span" src="../corridor/modules/bg20/blackstone_bg20_span_b.png" alt="">
+      <img class="ribs" src="../corridor/modules/bg20/blackstone_bg20_ribs_d.png" alt="">
+      <img class="pylon" src="../corridor/modules/bg20/blackstone_bg20_pylon_a.png" alt="">
+    </div>
+    <div id="fog"></div>
+    <div id="floor"></div>
+    <canvas id="sprite" aria-label="Animated Aeldari Ranger"></canvas>
+    <div id="footline"></div>
+  </main>
+  <aside id="ui">
+    <h1>Aeldari Ranger · animation test</h1>
+    <p class="sub">Current game atlases, playback speeds and sprite alignment. Confidence up is included as an additional imported animation.</p>
+    <div id="current">Loading…</div>
+    <div id="detail"></div>
+    <div id="warning"></div>
+    <div id="progress"><span></span></div>
+    <div class="controls">
+      <button id="restart" type="button">Restart</button>
+      <button id="previous" type="button">Previous</button>
+      <button id="play" type="button">Pause</button>
+      <button id="next" type="button">Next</button>
+    </div>
+    <div class="options">
+      <label>Speed <select id="speed"><option value="0.5">½×</option><option value="1" selected>1×</option><option value="1.5">1½×</option><option value="2">2×</option></select></label>
+      <label><input id="repeat" type="checkbox" checked> Repeat tour</label>
+      <label><input id="pivot" type="checkbox"> Foot line</label>
+    </div>
+    <div id="playlist" aria-label="Animation playlist"></div>
+  </aside>
+  <script>
+    const root = '../art-source/imports/sprite-editor/';
+    const game = '../sprites/';
+    const clips = {
+      walk: {path:game+'ranger-walk.png',count:24,fps:15.2145},
+      idle: {path:game+'ranger-idle.png',count:129,fps:17.28,scale:348/388,foot:450,target:470},
+      attack: {path:game+'ranger-shoot.png',count:77,fps:24,scale:(387*(348/388))/350,foot:431,target:470},
+      confidence: {path:game+'ranger-confidence.png',count:41,fps:12},
+      stress: {path:game+'ranger-low-morale2.png',count:41,fps:12,scale:348/381,foot:445,target:470},
+      hit: {path:game+'ranger-hit.png',count:125,fps:27.6,scale:.99,foot:467,target:470,duration:125/27.6*(.7/1.5+.3)}
+    };
+    Object.values(clips).forEach(c=>Object.assign(c,{columns:8,border:2,gap:4}));
+    const tour = [
+      {name:'Walk right',clip:'walk',duration:5,move:1,face:1},
+      {name:'Walk left · mirrored',clip:'walk',duration:5,move:-1,face:-1},
+      {name:'Idle · current',clip:'idle'},
+      {name:'Shoot · current',clip:'attack'},
+      {name:'Got hit · variable speed',clip:'hit'},
+      {name:'Low morale · Ranger_LowMorale2',clip:'stress'},
+      {name:'Confidence up',clip:'confidence'}
+    ];
+    const canvas = document.querySelector('#sprite');
+    const ctx = canvas.getContext('2d');
+    const stage = document.querySelector('#stage');
+    const current = document.querySelector('#current');
+    const detail = document.querySelector('#detail');
+    const warning = document.querySelector('#warning');
+    const progress = document.querySelector('#progress span');
+    const playlist = document.querySelector('#playlist');
+    const playButton = document.querySelector('#play');
+    const images = new Map();
+    let active = 0, elapsed = 0, previousTime = 0, playing = true, speed = 1;
+
+    function durationOf(item) { const c = clips[item.clip]; return item.duration ?? c.duration ?? c.count / c.fps; }
+    function imageFor(key) {
+      if (!images.has(key)) {
+        const img = new Image();
+        img.src = clips[key].path;
+        img.onerror = () => { warning.textContent = 'Could not load ' + clips[key].path; };
+        images.set(key, img);
+      }
+      return images.get(key);
+    }
+    function select(index) {
+      active = Math.max(0, Math.min(tour.length - 1, index));
+      elapsed = 0;
+      warning.textContent = '';
+      imageFor(tour[active].clip);
+      imageFor(tour[Math.min(active + 1, tour.length - 1)].clip);
+      for (const [i, button] of [...playlist.children].entries()) button.classList.toggle('active', i === active);
+      current.textContent = tour[active].name;
+    }
+    function resize() {
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = Math.round(innerWidth * dpr);
+      canvas.height = Math.round(innerHeight * dpr);
+      canvas.style.width = innerWidth + 'px';
+      canvas.style.height = innerHeight + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+    }
+    function draw() {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      const item = tour[active], clip = clips[item.clip], img = imageFor(item.clip);
+      if (!img.complete || !img.naturalWidth) { detail.textContent = 'Loading atlas…'; return false; }
+      const duration = durationOf(item);
+      let sourceTime=elapsed;
+      if(item.clip==='hit'){
+        const progress=elapsed*clip.fps/clip.count, first=.35/1.5, middle=first+.3;
+        sourceTime=(progress<first?progress*1.5:progress<middle?.35+progress-first:.65+(progress-middle)*1.5)*clip.count/clip.fps;
+      }
+      const frame = Math.min(clip.count - 1, item.move?Math.floor(sourceTime*clip.fps)%clip.count:Math.floor(sourceTime * clip.fps));
+      const sourceX = clip.border + (frame % clip.columns) * (512 + clip.gap);
+      const sourceY = clip.border + Math.floor(frame / clip.columns) * (512 + clip.gap);
+      const size = Math.min(innerHeight * .48, 410);
+      const panelWidth = document.querySelector('#ui').getBoundingClientRect().width;
+      const usableWidth = innerWidth > 700 ? Math.max(350, innerWidth - panelWidth - 32) : innerWidth;
+      const left = usableWidth * .18, right = usableWidth * .82;
+      let x = usableWidth * .5;
+      if (item.move) {
+        const t = Math.max(0, Math.min(1, elapsed / duration));
+        x = item.move > 0 ? left + (right - left) * t : right - (right - left) * t;
+      }
+      const y = innerHeight * .82;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(item.face || 1, 1);
+      const scale=clip.scale??1,side=size*scale;
+      const offset=clip.foot===undefined?0:(clip.target-clip.foot*scale)*size/512;
+      ctx.drawImage(img,sourceX,sourceY,512,512,-side/2-(item.clip==='stress'?2:0),-size*(468/512)+offset,side,side);
+      ctx.restore();
+      detail.textContent = `Frame ${frame + 1} / ${clip.count} · ${clip.fps} FPS · ${Math.min(elapsed, duration).toFixed(1)} / ${duration.toFixed(1)} s` + (item.face === -1 ? ' · horizontal mirror' : '');
+      progress.style.width = (100 * Math.min(1, elapsed / duration)) + '%';
+      return true;
+    }
+    function tick(now) {
+      const dt = previousTime ? Math.min((now - previousTime) / 1000, .1) : 0;
+      previousTime = now;
+      const loaded = draw();
+      if (playing && loaded) {
+        elapsed += dt * speed;
+        if (elapsed >= durationOf(tour[active])) {
+          if (active < tour.length - 1) select(active + 1);
+          else if (document.querySelector('#repeat').checked) select(0);
+          else { playing = false; elapsed = durationOf(tour[active]); playButton.textContent = 'Play'; }
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+    tour.forEach((item, index) => {
+      const button = document.createElement('button');
+      const name = document.createElement('span'); name.textContent = `${String(index + 1).padStart(2, '0')} · ${item.name}`;
+      const time = document.createElement('small'); time.textContent = durationOf(item).toFixed(1) + ' s';
+      button.append(name, time);
+      button.onclick = () => select(index);
+      playlist.append(button);
+    });
+    document.querySelector('#restart').onclick = () => { select(0); playing = true; playButton.textContent = 'Pause'; };
+    document.querySelector('#previous').onclick = () => select(active - 1);
+    document.querySelector('#next').onclick = () => select(active + 1);
+    playButton.onclick = () => { playing = !playing; playButton.textContent = playing ? 'Pause' : 'Play'; };
+    document.querySelector('#speed').onchange = event => { speed = Number(event.target.value); };
+    document.querySelector('#pivot').onchange = event => stage.classList.toggle('show-pivot', event.target.checked);
+    addEventListener('resize', resize);
+    resize(); select(0); requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

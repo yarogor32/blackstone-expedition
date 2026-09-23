@@ -36,7 +36,7 @@ body{overflow-x:hidden}
 .mission-top,.mission-bottom{position:absolute;z-index:110;display:flex;align-items:center;gap:16px;padding:10px 15px;background:#061113d9;border:1px solid #86724e;color:#ead6ab;font:12px/1.4 Arial,sans-serif;letter-spacing:.08em}
 .mission-top{top:14px;left:14px}.mission-top span:nth-child(2){color:#a7c7c4}.mission-bottom{bottom:14px;left:14px}
 .mission-top .btn,.mission-bottom .btn{font-size:11px;padding:6px 10px}
-.touch-controls{position:absolute;z-index:110;right:18px;bottom:18px;display:flex;gap:10px}.touch-controls button{width:52px;height:52px;background:#0b2426dd;border:1px solid #9fc4ba;color:#e6d3ac;font-size:30px;touch-action:none}
+.touch-controls{position:absolute;z-index:110;right:18px;bottom:42px;display:flex;gap:10px}.touch-controls button{width:52px;height:52px;background:#0b2426dd;border:1px solid #9fc4ba;color:#e6d3ac;font-size:30px;touch-action:none}
 .mission-fade{position:absolute;inset:0;z-index:120;background:#03090c;opacity:0;pointer-events:none;transition:opacity .65s}.mission-fade.active{opacity:1}
 @media(max-width:850px){.portal-grid{grid-template-columns:1fr}.portal-card{min-height:145px}.portal-map{display:block}.mission-top span:nth-child(2),.mission-bottom span{display:none}.mission-bottom{bottom:76px}}
 
@@ -150,3 +150,5 @@ body{overflow-x:hidden}
 
 .mission-loading{background-image:url("backgrounds/mission-loading.png")}
 .mission-loading.leaving{pointer-events:all}
+
+.hire-wrap{position:relative}.hire-back{position:absolute;top:22px;right:3vw;margin:0;z-index:2}.hire-wrap>h2,.hire-wrap>.caption{padding-right:190px}@media(max-width:600px){.hire-back{top:12px;right:12px}.hire-wrap{padding-top:62px}.hire-wrap>h2,.hire-wrap>.caption{padding-right:0}}
