@@ -71,12 +71,18 @@
   const buildingOrder = ['temple','workshop','bar','market','ship','docks'];
   const buildingLevel = Object.fromEntries(buildingOrder.map(name => [name,1]));
   const effectFiles = {
+    buildingUpgrade:"BuildingUpgrade.mp3",
+    rangerHit:"Ranger_GotHit.wav", rangerDeath:'Ranger_Death2.wav', rangerShoot:'Ranger_Shoot.wav',
+    tyranidDeath:'Tyranyd_Death.wav', tyranidHit1:'Tyranyd_GotHit.wav', tyranidHit2:'Tyranyd_GotHit2.wav',
+    termagantShoot:'Termogant_shoot.wav', hormagauntAttack:'Hormagaunt_Attacks.wav',
     hover:'Mouse-hover.mp3', teleportOut:'Teleport - out.mp3', teleportIn:'Teleport-in.mp3',
     barEnter:'Bar - enter.mp3', barExit:'Bar - exit.mp3', docksEnter:'Docks - Enter.mp3',
     templeEnter:'Shrine - Enter.mp3', shipEnter:'Yacht - enter.mp3',
     marketEnter:'Market - enter.mp3', workshopEnter:'Workshop-Enter.mp3'
   };
-  const effectVolume = {hover:.22,teleportOut:.62,teleportIn:.62};
+  const combatEffectNames=['rangerHit','rangerDeath','rangerShoot','tyranidDeath','tyranidHit1','tyranidHit2','termagantShoot','hormagauntAttack'];
+  let tyranidHitVariant=0;
+  const effectVolume = {hover:.65};
   const effects = Object.fromEntries(Object.entries(effectFiles).map(([name,file]) => {
     const sound = new Audio(`sfx/${encodeURIComponent(file)}`);
     sound.preload = 'auto';
@@ -118,6 +124,7 @@
   let hubError = false;
   const hubImageCache = new Map();
   let hubLoading = false;
+  let missionReady = Promise.resolve();
   const tracks = {menu:'Black Fortress - main menu.mp3', hub:'Black Fortress - Hub Location.mp3', mission:'Black Fortress - Raid.mp3'};
   let page = 'menu';
   let selectedHero = 0;
@@ -137,7 +144,7 @@
   }));
 
   function effectLevel(name) {
-    return volumes.overall * volumes.sfx / 10000 * (effectVolume[name] ?? .55);
+    return volumes.overall * volumes.sfx / 10000 * (effectVolume[name] ?? 1);
   }
   function applyVolumes() {
     audio.volume = volumes.overall * volumes.music / 10000;
@@ -166,15 +173,22 @@
 
   audio.addEventListener('playing', updateMusicControl);
   audio.addEventListener('pause', updateMusicControl);
+  audio.addEventListener('ended', () => {
+    if (page === 'mission' && mission?.victoryCue && audio.getAttribute('src') === 'music/Victory.wav') {
+      mission.victoryCue = false;
+      setMusic();
+    }
+  });
 
   function setMusic() {
-    const track = page === 'mission' ? tracks.mission : page === 'menu' ? tracks.menu : tracks.hub;
+    const track = page === 'mission' ? (mission?.defeated ? 'Party lost.mp3' : mission?.victoryCue ? 'Victory.wav' : mission?.combat ? 'Black Fortress - combat 1.mp3' : tracks.mission) : page === 'menu' ? tracks.menu : tracks.hub;
+    audio.loop = !['Party lost.mp3', 'Victory.wav'].includes(track);
     const path = `music/${encodeURIComponent(track)}`;
     if (audio.getAttribute('src') !== path) {
       audio.setAttribute('src', path);
       audio.load();
     }
-    if (soundEnabled) audio.play().catch(updateMusicControl);
+    if (soundEnabled && !(mission?.defeated && audio.ended)) audio.play().catch(updateMusicControl);
     else audio.pause();
   }
 
@@ -250,6 +264,32 @@
     }));
   }
 
+  async function enterMission() {
+    hubLoading = true;
+    keys.clear();
+    clearTimeout(greetingTimer);
+    const overlay = document.createElement('div');
+    overlay.className = 'hub-loading mission-loading';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<div class="hub-loading-content"><span class="hub-loading-spinner" aria-hidden="true"></span><strong>Into the Blackstone Fortress</strong><span>Preparing the expedition…</span></div>';
+    document.body.append(overlay);
+    await loadHubImage('backgrounds/mission-loading.png');
+    // Paint the parchment before creating and decoding the corridor.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    page = 'mission';
+    render();
+    await missionReady;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    playEffect('teleportIn');
+    overlay.classList.add('leaving');
+    setTimeout(() => {
+      overlay.remove();
+      keys.clear();
+      hubLoading = false;
+    }, 2300);
+  }
+
   function go(destination) {
     if (hubLoading) return;
     if (buildingEffects[page] && destination !== page) fadeEffect(buildingEffects[page]);
@@ -259,7 +299,7 @@
       greetedBuildings = {};
       saveGreetings();
       playEffect('teleportOut');
-      setTimeout(() => { if (page === 'mission') playEffect('teleportIn'); },650);
+
     }
     if (page === 'mission' && destination === 'hub') {
       const walkingIntoPortal = !!mission?.entering;
@@ -267,11 +307,17 @@
     }
     const fromMission = page === 'mission';
     if (page === 'mission' && destination !== 'mission') {
+      mission?.stopCombat?.();
+      combatEffectNames.forEach(name=>fadeEffect(name));
       mission = null;
       keys.clear();
     }
     if (destination === 'hub' && page !== 'hub') {
       enterHub(fromMission);
+      return;
+    }
+    if (destination === 'mission' && page !== 'mission') {
+      enterMission();
       return;
     }
     clearTimeout(greetingTimer);
@@ -280,7 +326,10 @@
   }
 
   function upgrade(place) {
-    if (buildingLevel[place] < 3) buildingLevel[place]++;
+    if (buildingLevel[place] < 3) {
+      buildingLevel[place]++;
+      playEffect("buildingUpgrade");
+    }
     render();
   }
 
@@ -370,7 +419,7 @@
 
   function renderMission() {
     app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="structures" class="world"><img class="module span" src="corridor/modules/bg20/blackstone_bg20_span_b.png" alt=""><img class="module ribs" src="corridor/modules/bg20/blackstone_bg20_ribs_d.png" alt=""><img class="module pylon" src="corridor/modules/bg20/blackstone_bg20_pylon_a.png" alt=""><img class="module aperture" src="corridor/modules/bg20/blackstone_bg20_aperture_c.png" alt=""></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-top"><span>THE FIRST PASSAGE</span><span>Reach the far portal</span>${button('Options','options',{small:true})}${button(musicLabel(),'sound',{small:true})}</div><div class="mission-bottom"><span>A / D or ← / → to move · release to idle</span>${button('Return to Precipice','hub',{small:true})}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
-    startMission();
+    missionReady = startMission();
   }
 
   function render() {
@@ -426,7 +475,7 @@
     if (event.target.matches?.('.map .landmark')) playEffect('hover');
   });
   app.addEventListener('pointerdown', event => {
-    if (page !== 'menu' && soundEnabled && !event.target.closest('[data-action="sound"]')) audio.play().catch(() => {});
+    if (page !== 'menu' && !(mission?.defeated && audio.ended) && soundEnabled && !event.target.closest('[data-action="sound"]')) audio.play().catch(() => {});
   });
 
   addEventListener('keydown', event => {
@@ -459,13 +508,23 @@
   }
   const walkAtlas = loadImage('sprites/ranger-walk.png');
   const idleAtlas = loadImage('sprites/ranger-idle.png');
+  const encounterImages = [window.combatImages.raider,window.combatImages.gunner];
 
-  function startMission() {
+  async function startMission() {
     const viewport = document.querySelector('#mission');
     const canvas = document.querySelector('#hero');
     const ctx = canvas.getContext('2d');
     mission = {viewport, canvas, ctx, x:innerHeight * .48, facing:1, camera:0, animation:'idle', animationTime:0, lastTime:0, entering:false};
     keys.clear();
+    const loadingState=mission;
+    const backdropSources = ['corridor/repeat/blackstone_bg10_deepplanes_c_1024.png',
+      'corridor/atmosphere/blackstone_bg30_fog_a_1024.png',
+      'corridor/playfield/blackstone_playfield_floor_a_1024.png'];
+    await Promise.all([
+      ...[walkAtlas,idleAtlas,...encounterImages,...Object.values(window.combatImages),...viewport.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})),
+      ...backdropSources.map(loadHubImage)
+    ]);
+    if(mission!==loadingState)return;
     function tick(now) {
       const state = mission;
       if (!state || state.canvas !== canvas || page !== 'mission') return;
@@ -475,7 +534,7 @@
       const width = viewport.clientWidth;
       const worldWidth = unit * 6;
       const maxCamera = Math.max(0, worldWidth-width);
-      const direction = optionsOpen ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+      const direction = (hubLoading || optionsOpen || state.combat) ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
       if (!state.entering && direction) {
         state.x = clamp(state.x + direction * unit * .27 * dt, unit*.29, unit*5.75);
         state.facing = direction;
@@ -483,7 +542,7 @@
       const animation = !state.entering && direction ? 'walk' : 'idle';
       if (state.animation !== animation) { state.animation = animation; state.animationTime = 0; }
       else state.animationTime += dt;
-      const targetCamera = clamp(state.x-width*.38, 0, maxCamera);
+      const targetCamera = clamp(state.combat ? unit*2.05-width*.5 : state.x-width*.38, 0, maxCamera);
       state.camera += (targetCamera-state.camera) * Math.min(1,dt*8);
       document.querySelector('#deep').style.backgroundPosition = `${-state.camera*.10}px center`;
       document.querySelector('#structures').style.transform = `translateX(${-state.camera*.20}px)`;
@@ -501,10 +560,10 @@
       ctx.clearRect(0,0,width,unit);
       const isWalk = state.animation === 'walk';
       const image = isWalk ? walkAtlas : idleAtlas;
-      const count = isWalk ? 24 : 49;
-      const fps = isWalk ? 12 : 12.8;
-      const columns = isWalk ? 8 : 7;
-      const border = isWalk ? 2 : 4;
+      const count = isWalk ? 24 : 129;
+      const fps = isWalk ? 15.2145 : 17.28;
+      const columns = 8;
+      const border = 2;
       const gap = 4;
       const frame = Math.floor(state.animationTime*fps)%count;
       const sourceX = border+(frame%columns)*(512+gap);
@@ -512,14 +571,40 @@
       const size = Math.min(unit*.48,410);
       const footY = unit*(846/1024);
       const screenX = state.x-state.camera;
-      if (image.complete && image.naturalWidth) {
+      if (!state.combat && image.complete && image.naturalWidth) {
         ctx.save();
         ctx.translate(screenX,footY);
         ctx.scale(state.facing,1);
-        ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
+        if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
+        else window.drawRanger(ctx,image,'idle',state.animationTime,-size/2,-size*(468/512),size);
         ctx.restore();
       }
-      if (!state.entering && (state.x >= unit*5.72 || state.x <= unit*.32)) {
+      if (!state.combat && !state.encounterDone && state.x >= unit*1.65) {
+        state.combat = true;
+        keys.clear();
+        setMusic();
+        state.stopCombat = window.startBlackstoneBattle({
+          party:[{id:'ranger',name:'Aeldari Ranger',rank:3}],
+          getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,size:Math.min(viewport.clientHeight*.48,410)}),
+          onOptions:openOptions,
+          onDefeat:()=>{state.defeated=true;setMusic();},
+          onVictory:()=>{state.victoryCue=true;setMusic();},
+          onAttack:(unit,skill)=>{
+            if(unit.id==='ranger' && ['shot','aim'].includes(skill))playEffect('rangerShoot');
+            else if(unit.id==='raider')playEffect('hormagauntAttack');
+            else if(unit.id==='gunner')playEffect('termagantShoot');
+          },
+          onHit:(unit,lethal)=>{
+            if(unit.id==='ranger')playEffect(lethal?'rangerDeath':'rangerHit');
+            else if(unit.side==='enemy')playEffect(lethal?'tyranidDeath':(++tyranidHitVariant%2?'tyranidHit1':'tyranidHit2'));
+          },
+          onFinish:result => {
+            state.combat = false; state.animationTime = 0; state.encounterDone = true; keys.clear(); setMusic();
+            if (result === 'defeat') go('hub');
+          }
+        });
+      }
+      if (!state.combat && !state.entering && (state.x >= unit*5.72 || state.x <= unit*.32)) {
         state.entering = true;
         playEffect('teleportOut');
         document.querySelector('#missionFade').classList.add('active');
