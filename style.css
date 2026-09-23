@@ -69,3 +69,31 @@ body{overflow-x:hidden}
 .options-dialog .volume-control{margin:18px 0}
 .options-actions{display:flex;justify-content:space-between;gap:10px;margin-top:24px}
 @media(max-width:520px){.top{padding:0 10px}.top-actions{gap:4px}.top-actions .btn{font-size:10px;padding:7px}.options-dialog{padding:22px}.mission-top{gap:7px}}
+
+/* Building conversations: portrait left, accessible controls right. */
+.building-scene{min-height:calc(100vh - 62px);display:grid;grid-template-columns:minmax(0,1.1fr) minmax(390px,1fr);align-items:end;padding:24px 3vw 0;gap:2vw;isolation:isolate}
+.building-scene:before{z-index:-1;background:linear-gradient(90deg,#03090c22,#03090c55)}
+.npc-portrait{height:calc(100vh - 86px);position:sticky;bottom:0;align-self:end;pointer-events:none;display:flex;align-items:end;justify-content:center}
+.npc-portrait img{width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 12px 18px #0009)}
+.building-scene .building-panel{position:relative;inset:auto;width:100%;box-sizing:border-box;margin:0 0 24px;padding:22px;align-self:center;max-width:620px;justify-self:end}
+.building-scene .building-panel h2{font-size:30px;margin:12px 0 6px}
+.building-scene .building-description{font-size:13px;margin:6px 0 12px}
+.npc-dialogue{border-top:1px solid #8b7048;border-bottom:1px solid #8b7048;padding:12px 0;margin:12px 0}
+.npc-dialogue h3{color:#e4c18b;font-size:20px;margin:0}
+.building-panel .npc-line{font-size:16px;line-height:1.5;min-height:4.5em;margin:10px 0}
+.npc-topics{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.npc-topics>span{width:100%;font:12px Arial,sans-serif;color:#bca784}
+.building-panel .npc-topics .btn{width:auto;margin:0;font-size:12px}
+.building-scene .upgrade-box{margin-top:10px;padding-top:10px}
+@media(max-width:850px){.building-scene{grid-template-columns:minmax(0,.8fr) minmax(330px,1fr);padding:16px 12px 0;gap:8px}.building-scene .building-panel{padding:16px}.npc-portrait{height:70vh}}
+@media(max-width:600px){.building-scene{grid-template-columns:1fr;padding:0 12px 16px}.npc-portrait{position:relative;height:38vh;min-height:220px;grid-row:1}.building-scene .building-panel{margin:0;max-width:none}.building-panel .building-panel-top{flex-direction:row;align-items:center}.building-panel-top .tag{font-size:10px}.building-panel .building-panel-top .btn{font-size:11px}.building-panel .npc-line{min-height:0}}
+
+.npc-portrait img{transform-origin:center bottom;transition:transform .6s ease}
+.npc-portrait.speaking img{transform:scale(1.055)}
+.npc-greeting{position:absolute;z-index:3;bottom:5%;left:3%;right:3%;padding:20px 24px;background:linear-gradient(135deg,#152a28fa,#080e13fa);border:2px ridge #bba06b;box-shadow:0 12px 32px #000b;pointer-events:auto;opacity:0;transform:translateY(18px);transition:opacity .4s ease,transform .4s ease}
+.npc-greeting.visible{opacity:1;transform:translateY(0)}
+.npc-greeting h3{margin:0 0 10px;color:#e4c18b;font-size:23px}
+.npc-greeting p{margin:0 0 14px;font:17px/1.5 Georgia,serif;color:#eee2cc}
+.npc-greeting .btn{float:none}
+@media(max-width:600px){.npc-greeting{bottom:0;padding:12px}.npc-greeting h3{font-size:18px}.npc-greeting p{font-size:14px;margin-bottom:8px}}
+@media(prefers-reduced-motion:reduce){.npc-portrait img,.npc-greeting{transition:none}}

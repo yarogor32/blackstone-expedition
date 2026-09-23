@@ -12,6 +12,56 @@
     temple:['Prayer and Confidence recovery for Space Marines.', 'Restore Confidence'],
     workshop:['Train heroes and repair damaged power armor.', 'Train Hero', 'Repair Armor']
   };
+  const npcTopics = {bar:['work','rumours'],temple:['faith','shrine'],market:['goods','salvage'],workshop:['repairs','forge'],docks:['portals','crews'],ship:['rest','expedition']};
+  const lastGreetings = {};
+  const dialogueKeys = {};
+  const locale = document.documentElement.lang || 'en';
+  function npcText(key) {
+    return window.NPC_LOCALES?.[locale]?.[key] ?? window.NPC_LOCALES?.en?.[key] ?? key;
+  }
+  function escapeText(value) {
+    return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+  function greet(place) {
+    const choices = [1,2,3].filter(n => n !== lastGreetings[place]);
+    const next = choices[Math.floor(Math.random() * choices.length)];
+    lastGreetings[place] = next;
+    dialogueKeys[place] = `${place}.greeting.${next}`;
+  }
+  let greetedBuildings = {};
+  try { greetedBuildings = JSON.parse(localStorage.getItem('blackstone-npc-greeted') || '{}') || {}; } catch (_) {}
+  let greetingTimer;
+  function saveGreetings() {
+    try { localStorage.setItem('blackstone-npc-greeted', JSON.stringify(greetedBuildings)); } catch (_) {}
+  }
+  function dismissGreeting() {
+    clearTimeout(greetingTimer);
+    app.querySelector('.npc-portrait')?.classList.remove('speaking');
+    const bubble = app.querySelector('.npc-greeting');
+    if (bubble) {
+      bubble.classList.remove('visible');
+      setTimeout(() => bubble.remove(), 450);
+    }
+  }
+  function showGreeting(place) {
+    if (greetedBuildings[place]) return;
+    greetedBuildings[place] = true;
+    saveGreetings();
+    greet(place);
+    const portrait = app.querySelector('.npc-portrait');
+    const bubble = document.createElement('section');
+    bubble.className = 'npc-greeting';
+    bubble.setAttribute('role', 'status');
+    bubble.innerHTML = `<h3>${escapeText(npcText(place+'.name'))}</h3><p>${escapeText(npcText(dialogueKeys[place]))}</p><button class="btn small" data-action="greeting-close">${escapeText(npcText('ui.continue'))}</button>`;
+    portrait.append(bubble);
+    requestAnimationFrame(() => {
+      if (!bubble.isConnected) return;
+      portrait.classList.add('speaking');
+      bubble.classList.add('visible');
+    });
+    clearTimeout(greetingTimer);
+    greetingTimer = setTimeout(dismissGreeting, 6500);
+  }
   const heroes = [
     {name:'Aeldari Ranger', file:'aeldari-ranger', role:'Mobile ranged fighter', positions:'2–4', moves:['Shuriken Catapult — targets 2–4','Swift Step — reposition and gain defense','Foresight — helps an ally evade the next hit'], trait:'Needs food at camp. Severe injuries require treatment at base.', rest:'Rogue Trader Yacht', available:true},
     {name:'Space Marine', file:'space-marine', role:'Frontline / Guard'},
@@ -206,6 +256,8 @@
     if (page === 'hub' && buildingEffects[destination]) playEffect(buildingEffects[destination]);
     if (page === 'bar' && destination === 'hub') playEffect('barExit');
     if (page === 'portals' && destination === 'mission') {
+      greetedBuildings = {};
+      saveGreetings();
       playEffect('teleportOut');
       setTimeout(() => { if (page === 'mission') playEffect('teleportIn'); },650);
     }
@@ -222,6 +274,7 @@
       enterHub(fromMission);
       return;
     }
+    clearTimeout(greetingTimer);
     page = destination;
     render();
   }
@@ -307,7 +360,8 @@
       return button(action ? label : `${label} · Coming Soon`, action, {disabled:!action});
     }).join('');
     const level = buildingLevel[place];
-    app.innerHTML = `${renderTop()}<section class="scene" style="background-image:url('interiors/${place}.png')"><div class="building-panel"><div class="building-panel-top"><div class="tag">Precipice Location · Level ${level}</div>${button('Back to Precipice','hub',{small:true})}</div><h2>${names[place]}</h2><p>${details[0]}</p>${actions}<div class="upgrade-box"><strong>Building Level ${level} / 3</strong><p class="caption">Visual upgrade preview.</p>${button(level === 3 ? 'Maximum Level' : 'Upgrade Building',`upgrade-${place}`,{disabled:level === 3})}</div></div></section>`;
+    app.innerHTML = `${renderTop()}<section class="scene building-scene" style="background-image:url('interiors/${place}.png')"><div class="npc-portrait"><img src="npcs/${place}.png" alt="${escapeText(npcText(place+'.name'))}"></div><div class="building-panel"><div class="building-panel-top"><div class="tag">Precipice Location · Level ${level}</div>${button('Back to Precipice','hub',{small:true})}</div><h2>${names[place]}</h2><p class="building-description">${details[0]}</p>${actions}<div class="upgrade-box"><strong>Building Level ${level} / 3</strong><p class="caption">Visual upgrade preview.</p>${button(level === 3 ? 'Maximum Level' : 'Upgrade Building',`upgrade-${place}`,{disabled:level === 3})}</div></div></section>`;
+    showGreeting(place);
   }
 
   function renderPortals() {
@@ -344,6 +398,7 @@
     }
     else if (action === 'settings') { settingsOpen = true; renderMenu(); }
     else if (action === 'settings-back') { settingsOpen = false; renderMenu(); }
+    else if (action === 'greeting-close') dismissGreeting();
     else if (action.startsWith('upgrade-')) upgrade(action.slice(8));
     else if (action.startsWith('hero-')) { selectedHero = Number(action.slice(5)); render(); }
     else go(action);
