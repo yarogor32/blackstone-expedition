@@ -16,7 +16,7 @@
   };
   function icon(id){return `<svg class="item-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="${paths[items[id].icon]}"/></svg>`;}
   function btn(text,cmd,disabled=false){return `<button class="btn small" data-inv="${cmd}" ${disabled?'disabled':''}>${esc(text)}</button>`;}
-  let storage;try{storage=localStorage;}catch(_){}
+  let storage;try{storage=window.CampaignSaves.storage;}catch(_){}
   const inventory=new window.ExpeditionInventory(storage);
   let dialog=null,selected=-1,target=null,message='',moving=false,confirmDrop=false,combat=false,onClose=null,mode='bag',eventSpec=null,summary=null,confirmLootClose=false;
   const name=id=>t(id)[0];
@@ -81,7 +81,8 @@
   function renderDialog(){
     if(!dialog)return;
     if(mode==='summary'){
-      dialog.innerHTML=`<header><h2>${t('returnTitle')}</h2></header><p>${t(summary.defeated?'lost':summary.fled?'fled':'returned')}</p><p>${t('difficulty')}: ${t(summary.difficulty||'normal')}</p><div class="debrief-accounting"><p>${t('gross')} <b>${summary.gross} ◈</b></p><p class="debrief-penalty">${t('retreatPenalty')} (${Math.round(summary.lossRate*100)}%) <b>−${summary.penalty} ◈</b></p></div><h3>${t('net')}: +${summary.earned} ${t('bank')}</h3><p>Total: ${summary.balance} ${t('bank')}</p><div class="cargo-summary">${summary.cargo.map(s=>`<p>${esc(name(s.id))} ×${s.qty} <b>${summary.defeated?'Lost':s.value+' ◈'}</b></p>`).join('')}</div>${btn(t('close'),'close')}`;
+      dialog.classList.add('return-debrief');
+      dialog.innerHTML=`<div class="return-host"><img src="npcs/docks-complete.png" alt="Dock Foreman"><blockquote><strong>Dock Foreman</strong><p>${esc(summary.returnLine)}</p></blockquote></div><section class="return-report"><header><h2>${t('returnTitle')}</h2></header><p>${t(summary.defeated?'lost':summary.fled?'fled':'returned')}</p><p>${t('difficulty')}: ${t(summary.difficulty||'normal')}</p><div class="debrief-accounting"><p>${t('gross')} <b>${summary.gross} ◈</b></p><p class="debrief-penalty">${t('retreatPenalty')} (${Math.round(summary.lossRate*100)}%) <b>−${summary.penalty} ◈</b></p></div><h3>${t('net')}: +${summary.earned} ${t('bank')}</h3><p>Total: ${summary.balance} ${t('bank')}</p><div class="cargo-summary">${summary.cargo.map(s=>`<p>${esc(name(s.id))} ×${s.qty} <b>${summary.defeated?'Lost':s.value+' ◈'}</b></p>`).join('')}</div>${summary.fallen?.length?`<h3>Fallen crew · permanently lost</h3><p>${summary.fallen.map(h=>esc(h.name)).join('<br>')}</p>`:''}${btn(t('close'),'close')}</section>`;
       wire(dialog,renderDialog,cmd=>{if(cmd==='close'){close();return true;}});return;
     }
     const loot=inventory.run.pendingLoot;
@@ -98,6 +99,7 @@
   function open(options={}){
     if(dialog)return;
     mode=options.mode||'bag';combat=!!options.combat;onClose=options.onClose;eventSpec=options.event;summary=options.summary;
+    if(mode==='summary'){const category=summary.defeated?'defeated':summary.fled?'fled':'returned',locale=window.RETURN_DIALOGUE[document.documentElement.lang]||window.RETURN_DIALOGUE.en;const lines=locale[category];summary.returnLine=lines[Math.floor(Math.random()*lines.length)];}
     target=inventory.run?.party.find(u=>u.hp>0)?.id;selected=-1;message='';moving=false;confirmDrop=false;confirmLootClose=false;
     dialog=document.createElement('dialog');dialog.className='inventory-dialog';dialog.setAttribute('aria-label',t('bag'));document.body.append(dialog);
     dialog.addEventListener('cancel',e=>{e.preventDefault();if(['bag','summary','loot'].includes(mode))requestClose();});

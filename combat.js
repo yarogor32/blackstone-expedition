@@ -8,12 +8,14 @@ const skills = [
  {id:'step',name:'Evasive Step',from:[1,2,3,4],to:[],description:'Move one rank back · evade next attack'}
 ];
 class Battle {
- constructor(party,random=Math.random) {
+ constructor(party,random=Math.random,snapshot=null) {
   this.random=random;this.round=0;this.queue=[];this.log=[];this.result=null;
+  if(snapshot){this.units=JSON.parse(JSON.stringify(snapshot.units));this.round=snapshot.round;this.queue=[...snapshot.queue];this.log=[...snapshot.log];this.result=snapshot.result;this.active=this.units.find(u=>u.id===snapshot.activeId);return;}
   this.units=party.slice(0,4).map((u,i)=>({hp:28,maxHp:28,morale:100,maxMorale:100,speed:6,rank:i+1,side:'party',...u}));
-  this.units.push({id:'raider',name:'Hormagaunt',hp:16,maxHp:16,speed:3,rank:1,side:'enemy'}, {id:'gunner',name:'Termagant',hp:14,maxHp:14,speed:4,rank:3,side:'enemy'});
+  this.units.push({id:'raider',name:'Hormagaunt',hp:16,maxHp:16,speed:3,rank:1,side:'enemy'}, {id:'psyker',name:'Zoanthrope',hp:20,maxHp:20,speed:2,rank:4,side:'enemy'}, {id:'gunner',name:'Termagant',hp:14,maxHp:14,speed:4,rank:3,side:'enemy'});
   this.next();
  }
+ snapshot(){return JSON.parse(JSON.stringify({units:this.units,round:this.round,queue:this.queue,log:this.log,result:this.result,activeId:this.active?.id}));}
  roll(min,max){return min+Math.floor(this.random()*(max-min+1));}
  living(side){return this.units.filter(u=>u.side===side&&u.hp>0);}
  next(){
@@ -51,7 +53,8 @@ class Battle {
   if(a.side==='party'&&critical)a.morale=Math.min(a.maxMorale||100,(a.morale??100)+morale.rules.critRecovery);
   this.log.push(`${a.name} ${critical?'critically hits':'hits'} ${t.name} for ${lost}.${t.hp===0?' Fallen.':''}`);
  }
- enemy(){if(this.result||this.active.side!=='enemy')return;const a=this.active;const targets=this.living('party').sort((a,b)=>a.rank-b.rank);const target=a.id==='gunner'?targets[targets.length-1]:targets[0];this.log.push(`${a.name} uses ${a.id==='gunner'?'Fleshborer':'Scything Talons'}.`);this.hit(a,target,{min:2,max:4,accuracy:85,crit:5});this.next();}
+ enemyTarget(){const a=this.active;const targets=this.living('party').sort((a,b)=>a.rank-b.rank);return a.id==='psyker'?targets.reduce((weak,h)=>(h.morale??100)<(weak.morale??100)?h:weak,targets[0]):a.id==='gunner'?targets[targets.length-1]:targets[0];}
+ enemy(){if(this.result||this.active.side!=='enemy')return;const a=this.active;const target=this.enemyTarget();this.log.push(`${a.name} uses ${a.id==='psyker'?'Warp Blast':a.id==='gunner'?'Fleshborer':'Scything Talons'}.`);this.hit(a,target,a.id==='psyker'?{min:3,max:6,accuracy:80,crit:8}:{min:2,max:4,accuracy:85,crit:5});this.next();}
 }
 window.drawTyranid = (ctx,image,attack,x,y,w,h) => {
  if(attack==='hit'){ctx.drawImage(image,1565,0,607,724,x+w*.12,y,w*.77,h);return;}
@@ -61,7 +64,7 @@ window.drawTyranid = (ctx,image,attack,x,y,w,h) => {
 };
 // Timing segments refer to source-frame progress, preserving every pose in order.
 const rangerHitTiming = {
- frames:125, fps:27.6, edge:0.35, middle:0.30, boost:1.5,
+ frames:125, fps:41.4, edge:0.35, middle:0.30, boost:1.5,
  get duration(){return this.frames/this.fps*(2*this.edge/this.boost+this.middle);},
  frameAt(seconds){
   const progress=Math.max(0,seconds)*this.fps/this.frames;
@@ -75,7 +78,7 @@ const rangerHitTiming = {
 };
 window.drawRanger = (ctx,image,kind,time,x,y,size) => {
  ctx.save();ctx.translate(x,y);const unit=size/512;ctx.scale(unit,unit);
- if(kind==='stress'){const frame=Math.min(40,Math.floor(time*12)),scale=348/381,side=512*scale;ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,(512-side)/2-2/unit,470-445*scale,side,side);}
+ if(kind==='stress'){const frame=Math.min(40,Math.floor(time*12)),scale=348/381,side=512*scale;ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,(512-side)/2-3/unit,470-445*scale,side,side);}
  else if(kind==='attack'){const frame=Math.min(76,Math.floor(time*24));const scale=(387*(348/388))/350,side=512*scale;ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,(512-side)/2,470-431*scale,side,side);}
  else {const hit=kind==='hit';const frame=hit?rangerHitTiming.frameAt(time):Math.floor(time*17.28)%129;
  const scale=hit?.99:348/388,side=512*scale;
@@ -84,11 +87,11 @@ window.drawRanger = (ctx,image,kind,time,x,y,size) => {
  ctx.restore();
 };
 window.combatImages={};
-for(const [id,path] of Object.entries({ranger:'ranger-idle',attack:'ranger-shoot',hit:'ranger-hit',stress:'ranger-low-morale2',raider:'hormagaunt-melee',gunner:'termagant-ranged'})){const image=new Image();image.src='sprites/'+path+'.png';window.combatImages[id]=image;}
+for(const [id,path] of Object.entries({ranger:'ranger-idle',attack:'ranger-shoot',hit:'ranger-hit',stress:'ranger-low-morale2',raider:'hormagaunt-melee',psyker:'zoanthrope-psyker',gunner:'termagant-ranged'})){const image=new Image();image.src='sprites/'+path+'.png';window.combatImages[id]=image;}
 window.BlackstoneBattle=Battle;
-window.startBlackstoneBattle=({party,onFinish,onOptions,getLayout,onHit,onAttack,onDefeat,onVictory,onInventory,onPartyChange,onFlee,onCameraSide})=>{
- const battle=new Battle(party);let selected='shot',timer,closed=false,attackId=null,attackUntil=0,attackStarted=0,busyUntil=performance.now()+1200,victoryShown=false,defeatAnnounced=false;const appearedAt=performance.now();const deaths=new Map();const reactions=new Map();const stressReactions=new Map();const floatingText=new Map();const idleStarts=new Map();const previousPoses=new Map();
- onPartyChange?.(battle.units.filter(u=>u.side==='party'));
+window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,getLayout,onHit,onAttack,onDefeat,onVictory,onInventory,onPartyChange,onFlee,onCameraSide,onStressFocus})=>{
+ const battle=new Battle(party,Math.random,snapshot);let selected='shot',timer,closed=false,attackId=null,attackTargetId=null,pairUntil=0,attackUntil=0,attackStarted=0,busyUntil=performance.now()+1200,victoryShown=false,defeatAnnounced=false;const appearedAt=performance.now();const deaths=new Map();const reactions=new Map();const stressReactions=new Map();const characterEffects=new window.CharacterEffects();const floatingText=new Map();const idleStarts=new Map();const previousPoses=new Map();let focusedId=null;const focusScales=new Map();let previousDrawTime=performance.now();
+ onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());
  let inspected='shot',lastTurnNotice='',turnNotice=null,turnNoticeTimer;
  const images=window.combatImages;
  function hideTurnNotice(){clearTimeout(turnNoticeTimer);turnNotice?.remove();turnNotice=null;}
@@ -108,14 +111,14 @@ window.startBlackstoneBattle=({party,onFinish,onOptions,getLayout,onHit,onAttack
   const player=!battle.result&&performance.now()>=busyUntil&&battle.active?.side==='party';
   panel.innerHTML=window.CombatUI.info(inspected,skills,battle.active,player);
  }
- function resolve(action,skill){
+ function resolve(action,skill,targetId){
   if(closed||performance.now()<busyUntil)return;
   const attacker=battle.active;
-  const shooting=attacker.id==='ranger'&&['shot','aim'].includes(skill);
+  const shooting=attacker.side==='party'&&['shot','aim'].includes(skill);
   const started=performance.now();
-  attackId=attacker.id;attackStarted=started;
+  attackId=attacker.id;attackTargetId=targetId||(attacker.side==='enemy'?battle.enemyTarget()?.id:null);attackStarted=started;
   attackUntil=started+(attacker.side==='party'?77/24*1000:700);
-  busyUntil=attackUntil+100;
+  busyUntil=attackUntil+100;pairUntil=attackUntil;
 
   if(!shooting)onAttack?.(attacker,skill);
   render();
@@ -124,7 +127,7 @@ window.startBlackstoneBattle=({party,onFinish,onOptions,getLayout,onHit,onAttack
    if(closed)return;
    const now=performance.now();
    const before=new Map(battle.units.map(u=>[u.id,u.hp]));
-   battle.lastImpact=null;action();onPartyChange?.(battle.units.filter(u=>u.side==='party'));
+   battle.lastImpact=null;action();onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());
    window.ExpeditionSpeech?.impact(battle,battle.lastImpact);
    if(shooting&&battle.lastImpact)onAttack?.(attacker,skill);
    if(battle.lastImpact?.missed)floatingText.set(battle.lastImpact.target,{start:now,text:'Missed',missed:true});
@@ -136,11 +139,12 @@ window.startBlackstoneBattle=({party,onFinish,onOptions,getLayout,onHit,onAttack
     const duration=u.side==='party'?rangerHitTiming.duration*1000:650;
     reactions.set(u.id,{start:now,end:now+duration,damage});
     if(!lethal&&battle.lastImpact?.breakdown&&u.side==='party'){
-      const start=now+duration,end=start+41/12*1000;stressReactions.set(u.id,{start,end});busyUntil=Math.max(busyUntil,end);
+      const start=now+duration,end=start+41/12*1000;stressReactions.set(u.id,{start,end});characterEffects.play(u.id,'stress',start,end-start);busyUntil=Math.max(busyUntil,end+350);
     }
     if(lethal){deaths.set(u.id,now+150);busyUntil=Math.max(busyUntil,now+1350);}
     busyUntil=Math.max(busyUntil,now+duration);
    });
+   pairUntil=Math.max(attackUntil,...[...reactions.values()].map(r=>r.end));
    render();
   },shooting?1300:200);
  }
@@ -170,31 +174,36 @@ window.startBlackstoneBattle=({party,onFinish,onOptions,getLayout,onHit,onAttack
   if(battle.result==='defeat'&&!busy){if(!defeatAnnounced){defeatAnnounced=true;hideTurnNotice();onDefeat?.();}const banner=document.createElement('div');banner.className='defeat-banner';banner.setAttribute('role','status');banner.innerHTML='<img src="branding/party-lost.png" alt="Party Lost">';root.append(banner);root.querySelector('.combat-console h2')?.remove();}
   clearTimeout(timer);
   if(busy)timer=setTimeout(render,Math.max(20,busyUntil-performance.now()+20));
-  else if(!battle.result&&!player)timer=setTimeout(()=>{if(document.querySelector('.options-dialog[open],.inventory-dialog[open],.location-map-dialog[open]')){render();return;}resolve(()=>battle.enemy());},1000);
+  else if(!battle.result&&!player)timer=setTimeout(()=>{if(document.querySelector('.options-dialog[open],.inventory-dialog[open],.location-map-dialog[open],.character-dialog[open]')){render();return;}resolve(()=>battle.enemy());},1000);
 
  }
  root.addEventListener('pointerover',e=>{const slot=e.target.closest('[data-info]');if(slot){inspected=slot.dataset.info;updateInfo();}});
  root.addEventListener('focusin',e=>{const slot=e.target.closest('[data-info]');if(slot){inspected=slot.dataset.info;updateInfo();}});
  root.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
-  if(b.dataset.skill){selected=b.dataset.skill;inspected=selected;if(selected==='step'){battle.act(selected);onPartyChange?.(battle.units.filter(u=>u.side==='party'));}render();}
-  else if(b.dataset.target){resolve(()=>battle.act(selected,b.dataset.target),selected);}
+  if(b.dataset.skill){selected=b.dataset.skill;inspected=selected;if(selected==='step'){battle.act(selected);onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());}render();}
+  else if(b.dataset.target){resolve(()=>battle.act(selected,b.dataset.target),selected,b.dataset.target);}
   else if(b.dataset.cmd==='flee')onFlee?.();
   else if(b.dataset.cmd==='options')onOptions();
-  else if(b.dataset.cmd==='inventory')onInventory?.(render);
+  else if(b.dataset.cmd==='inventory')onInventory?.(()=>{onCheckpoint?.(battle.snapshot());render();});
   else if(b.dataset.cmd==='finish'){closed=true;clearTimeout(timer);hideTurnNotice();root.remove();onFinish(battle.result);}
   else if(['forward','back','wait'].includes(b.dataset.cmd)){
    const c=b.dataset.cmd;inspected=c;
    const action=c==='forward'?`move:${battle.active.rank-1}`:c==='back'?`move:${battle.active.rank+1}`:'wait';
-   battle.act(action);onPartyChange?.(battle.units.filter(u=>u.side==='party'));render();
+   battle.act(action);onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());render();
   }
  });
  function draw(now){
   if(closed)return;
+  const focusDt=Math.min(.05,Math.max(0,(now-previousDrawTime)/1000));previousDrawTime=now;
+  const focusEntry=[...stressReactions].find(([id,s])=>now>=s.start-180&&now<s.end);
+  const focusId=focusEntry?.[0]||null;
+  if(focusId!==focusedId){focusedId=focusId;onStressFocus?.(focusId);}
+  for(const [id,s] of stressReactions)if(now>=s.start&&now<s.end&&!s.spoken){s.spoken=true;window.ExpeditionSpeech?.say(battle.units.find(u=>u.id===id),'extremelyNegative',{force:true,duration:s.end-now});}
   root.querySelectorAll('.combat-sprite').forEach(canvas=>{
-   const u=battle.units.find(u=>u.id===canvas.dataset.unit);if(getLayout){const l=getLayout(),button=canvas.parentElement;const rawX=(u.side==='party'?l.heroX+(3-u.rank)*l.unit*.16:l.unit*(2.28+(u.rank-1)*.18))-l.camera;const zoom=l.zoom||1,bias=l.bias||0,near=(u.side==='party'?1:-1)*bias;const center=l.center??innerWidth/2;const x=center+(rawX-center)*zoom+bias*l.unit*.018;const foot=l.unit*846/1024+near*l.unit*.009;const size=(u.side==='party'?l.size:l.size*.94)*zoom*(1+near*.045);
-   Object.assign(button.style,{position:'absolute',left:(x-65)+'px',top:(foot-60)+'px',width:'130px',height:'84px'});
-   Object.assign(canvas.style,{width:size+'px',height:size+'px',left:((130-size)/2)+'px',top:(60-size*468/512)+'px',bottom:'auto'});const meter=button.querySelector('meter');if(meter)meter.style.top=(48-size*468/512+size*(u.id==='raider'?.14:.07))+'px';}
+   const u=battle.units.find(u=>u.id===canvas.dataset.unit);if(getLayout){const l=getLayout(),button=canvas.parentElement;const rawX=(u.side==='party'?l.heroX+(3-u.rank)*l.unit*.16:l.unit*(2.28+(u.rank-1)*.18))-l.camera;const zoom=l.zoom||1,bias=l.bias||0,near=(u.side==='party'?1:-1)*bias;const center=l.center??innerWidth/2;const x=center+(rawX-center)*zoom+bias*l.unit*.018;const foot=l.unit*846/1024+near*l.unit*.009;const paired=now<pairUntil&&(u.id===attackId||u.id===attackTargetId);const focusGoal=focusId?(focusId===u.id?1.22:1):paired?1.12:1;const previousScale=focusScales.get(u.id)||1;const focusScale=Math.abs(focusGoal-previousScale)<.0001?focusGoal:previousScale+(focusGoal-previousScale)*(1-Math.exp(-focusDt*18));focusScales.set(u.id,focusScale);const size=focusScale*(u.side==='party'?l.size:l.size*.94)*zoom*(1+near*.045);
+   button.style.zIndex=focusId===u.id?'30':paired?(u.id===attackId?'22':'21'):'';button.classList.toggle('turn-owner',!battle.result&&u.id===(now<busyUntil&&attackId?attackId:battle.active?.id));button.classList.toggle('attack-target',paired&&u.id===attackTargetId);button.dataset.emphasis=paired?'attack':'none';canvas.style.transition='none';Object.assign(button.style,{position:'absolute',left:(x-65)+'px',top:(foot-60)+'px',width:'130px',height:'84px'});
+   Object.assign(canvas.style,{width:size+'px',height:size+'px',left:((130-size)/2)+'px',top:(60-size*468/512)+'px',bottom:'auto'});const meter=button.querySelector('meter');if(meter)meter.style.top=(48-size*468/512+size*(u.id!=='gunner'?.14:.07))+'px';}
 const death=deaths.get(u.id);if(death!==undefined&&now-death>=1200){canvas.parentElement.style.visibility='hidden';return;}
 const reaction=reactions.get(u.id);const hurt=reaction&&now>=reaction.start&&now<reaction.end;
    const attacking=u.id===attackId&&now<attackUntil;
@@ -211,7 +220,14 @@ const reaction=reactions.get(u.id);const hurt=reaction&&now>=reaction.start&&now
    if(death!==undefined)ctx.globalAlpha=Math.max(0,1-Math.max(0,dying-600)/600);
    canvas.dataset.pose=kind;
 
+   if(u.side==='party'&&death===undefined)characterEffects.draw(ctx,u.id,now);
    if(u.side==='party')window.drawRanger(ctx,image,kind,stressed?(now-stress.start)/1000:attacking?(now-attackStarted)/1000:death!==undefined?Math.max(0,(death-reaction.start)/1000):hurt?(now-reaction.start)/1000:(now-(idleStarts.get(u.id)??now))/1000,0,0,512);
+   else if(u.id==='psyker'){
+     const hit=death!==undefined||hurt;
+     if(hit)ctx.drawImage(image,1260,0,514,887,114,8,280,475);
+     else if(attacking)ctx.drawImage(image,480,0,730,887,-5,8,398,475);
+     else ctx.drawImage(image,0,0,490,887,108,8,268,475);
+   }
    else window.drawTyranid(ctx,image,death!==undefined||hurt?'hit':attacking,0,0,512,483);
    ctx.restore();
    if(u.side==='party'){const box=canvas.getBoundingClientRect(),base=root.getBoundingClientRect();window.ExpeditionSpeech?.position(u.id,box.left-base.left+box.width*.5,box.top-base.top+box.height*.23);}
@@ -229,6 +245,6 @@ const reaction=reactions.get(u.id);const hurt=reaction&&now>=reaction.start&&now
  }
  requestAnimationFrame(draw);
  window.ExpeditionSpeech?.say(battle.living('party')[0],'neutral');
- render();return ()=>{closed=true;clearTimeout(timer);hideTurnNotice();root.remove();};
+ render();return ()=>{closed=true;onStressFocus?.(null);characterEffects.clear();clearTimeout(timer);hideTurnNotice();root.remove();};
 };
 })();

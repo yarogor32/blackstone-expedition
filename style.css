@@ -152,3 +152,12 @@ body{overflow-x:hidden}
 .mission-loading.leaving{pointer-events:all}
 
 .hire-wrap{position:relative}.hire-back{position:absolute;top:22px;right:3vw;margin:0;z-index:2}.hire-wrap>h2,.hire-wrap>.caption{padding-right:190px}@media(max-width:600px){.hire-back{top:12px;right:12px}.hire-wrap{padding-top:62px}.hire-wrap>h2,.hire-wrap>.caption{padding-right:0}}
+
+.campaign-dialog{width:min(900px,94vw);max-width:94vw}.campaign-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.campaign-slot{border:1px solid #927850;padding:14px;background:#0b1919}.campaign-slot h3{color:#dfbc81}.campaign-slot p{font:13px/1.7 Arial}.campaign-slot .btn{margin:5px 4px 0 0}.campaign-slot select{display:block;padding:8px;background:#142421;color:#e8d9b4;margin-bottom:8px}#save-warning{position:fixed;bottom:80px;left:16px;z-index:9999;padding:12px;background:#512a20;color:#fff}@media(max-width:650px){.campaign-slots{grid-template-columns:1fr}}
+
+/* Ground markers stay anchored to the feet while the combat sprites enlarge. */
+.combat-unit::after{content:"";position:absolute;pointer-events:none;left:50%;top:64px;width:112px;height:9px;transform:translateX(-50%);opacity:0;background:linear-gradient(90deg,#816234,#ffe3a0,#816234);clip-path:polygon(0 50%,9% 0,43% 0,50% 35%,57% 0,91% 0,100% 50%,91% 100%,57% 100%,50% 65%,43% 100%,9% 100%);filter:drop-shadow(0 0 5px #e8bc66);z-index:3}
+.combat-unit.turn-owner::after{opacity:1}.combat-unit.turn-owner[data-side="enemy"]::after{background:linear-gradient(90deg,#681e19,#ff8a65,#681e19)}
+.combat-unit.targetable:hover::after,.combat-unit.targetable:focus-visible::after,.combat-unit.attack-target::after{opacity:1;background:linear-gradient(90deg,#793b27,#f99874,#793b27)}
+
+.portal-exit{position:absolute;z-index:75;width:54px;height:54px;transform:translate(-50%,-50%);display:grid;place-items:center;background:#0b211fea;border:1px solid #d1b373;color:#f1d99f;box-shadow:0 0 18px #56bfc34d;cursor:pointer}.portal-exit[hidden]{display:none}.portal-exit svg{width:36px;height:36px}.portal-exit:hover{background:#21443c;border-color:#ffe3a0;box-shadow:0 0 24px #56bfc38a}.portal-exit:focus-visible{outline:2px solid #ffe3a0;outline-offset:3px}

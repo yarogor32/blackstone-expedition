@@ -67,7 +67,7 @@
       else [this.slots[from],this.slots[to]]=[b,a];this.save();
     }
     split(index){const s=this.slots[index],empty=this.slots.indexOf(null);if(!s||s.qty<2||empty<0)return false;const n=Math.floor(s.qty/2);s.qty-=n;this.slots[empty]={id:s.id,qty:n};this.save();return true;}
-    restPlaces(hero){return hero.restPlaces || ({ranger:['ship'],'space-marine':['temple','ship'],drukhari:['bar','ship'],human:['bar','temple','ship'],'rogue-trader':['bar','temple','ship'],kroot:['bar','ship'],mechanicus:['temple','ship']}[hero.id] || ['ship']);}
+    restPlaces(hero){return hero.restPlaces || ({ranger:['ship'],'space-marine':['temple','ship'],drukhari:['bar','ship'],human:['bar','temple','ship'],'rogue-trader':['bar','temple','ship'],kroot:['bar','ship'],mechanicus:['temple','ship']}[hero.classId||hero.id] || ['ship']);}
     resting(id){return Object.values(this.state.restSlots).some(slots=>slots.some(s=>s?.id===id));}
     assignRest(place,index,hero){
       const level=this.state.buildingLevels[place]||1;
@@ -93,6 +93,17 @@
       this.run.difficulty=this.state.difficulty;
       this.save();return this.run;
     }
+    recordDeaths(party){
+      this.state.fallen ||= [];this.state.foodDebt ||= {};
+      const dead=party.filter(h=>h.hp<=0),ids=new Set(dead.map(h=>h.id));
+      for(const hero of dead){
+        if(!this.state.fallen.some(h=>h.id===hero.id))this.state.fallen.push({id:hero.id,name:hero.name||hero.id,level:hero.level||1,diedAt:Date.now()});
+        delete this.state.heroProfiles[hero.id];delete this.state.foodDebt[hero.id];
+      }
+      if(this.state.roster)this.state.roster=this.state.roster.filter(h=>!ids.has(h.id));
+      for(const slots of Object.values(this.state.restSlots))for(let i=0;i<slots.length;i++)if(ids.has(slots[i]?.id))slots[i]=null;
+      return dead.map(h=>({id:h.id,name:h.name||h.id}));
+    }
     finish(defeated=false,{fled=false}={}){
       if(!this.run)return null;
       const cargo=this.slots.filter(Boolean).map(s=>({...s,value:s.qty*ITEMS[s.id].sell}));
@@ -102,10 +113,11 @@
       const lootValue=cargo.filter(s=>ITEMS[s.id].kind==='loot').reduce((n,s)=>n+s.value,0);
       const penalty=Math.ceil(lootValue*lossRate);
       const earned=defeated?0:gross-penalty;
-      this.state.foodDebt=Object.fromEntries(this.run.party.map(u=>[u.id,u.foodDebt||0]));
-      for(const hero of this.run.party)this.state.heroProfiles[hero.id]={level:hero.level,morale:hero.morale,maxMorale:hero.maxMorale,affliction:hero.affliction||null};
+      const fallen=this.recordDeaths(this.run.party);
+      this.state.foodDebt=Object.fromEntries(this.run.party.filter(h=>h.hp>0).map(u=>[u.id,u.foodDebt||0]));
+      for(const hero of this.run.party.filter(h=>h.hp>0))this.state.heroProfiles[hero.id]={level:hero.level,morale:hero.morale,maxMorale:hero.maxMorale,affliction:hero.affliction||null};
       this.completeRest();this.state.credits+=earned;this.state.run=null;this.state.slots=Array(16).fill(null);this.save();
-      return {defeated,fled:fled&&!defeated,difficulty,lossRate,penalty,gross,lootValue,cargo,earned,balance:this.state.credits};
+      return {fallen,defeated,fled:fled&&!defeated,difficulty,lossRate,penalty,gross,lootValue,cargo,earned,balance:this.state.credits};
     }
     use(id,heroId,{combat=false}={}){
       if(!this.run||!this.count(id))return 'noEffect';

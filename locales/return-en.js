@@ -1,0 +1,6 @@
+// Debrief dialogue only. Kept separate from building greetings and trade dialogue.
+window.RETURN_DIALOGUE={en:{
+ returned:["Back through the proper gate. Good. Let us see what the fortress surrendered.","Your berth is still here. Bring the salvage ashore.","The portal held, and you made it home. I will take that as a good day's work.","Count your crew, then your cargo. In that order.","Welcome back. Leave the Blackstone dust on the landing ramp.","Another route charted. Another reason to keep the engines warm."],
+ fled:["You came back early. Alive is still a useful condition.","A retreat, then. We will settle the losses before the next departure.","The fortress can keep its secrets for one more day. Get your wounded ashore.","You lost ground, not your chance to return. Let us count the cost.","No speeches. Dock, unload, and tend to your crew.","Running is cheaper than a funeral. Usually."],
+ defeated:["The beacon went silent. No one is coming down that ramp.","I have struck their names from the departure roll. They will not be forgotten.","No survivors. The fortress has kept this crew.","There will be no salvage tally today. Only names.","An empty berth, an unanswered signal. I know what that means.","We waited until the portal closed. I am sorry."]
+}};

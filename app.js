@@ -5,7 +5,19 @@
   const audio = document.querySelector('#music');
   const supplies = window.Supplies;
   const inventory = supplies.inventory;
-  const expeditionCrew = [{id:'ranger',name:'Aeldari Ranger',rank:3,...window.EXPEDITION_METABOLISM.ranger}];
+  const expeditionCrew = [];
+  function syncCrew(){
+    inventory.state.roster ||= [{id:'ranger',name:'Aeldari Ranger',classId:'ranger',rank:3,...window.EXPEDITION_METABOLISM.ranger}];
+    expeditionCrew.splice(0,expeditionCrew.length,...inventory.state.roster);
+  }
+  syncCrew();
+  function recruitRanger(){
+    if(inventory.run||expeditionCrew.length>=4)return;
+    let number=inventory.state.nextRecruitId||2;while([...expeditionCrew,...(inventory.state.fallen||[])].some(h=>h.id==='ranger-'+number))number++;const id='ranger-'+number;inventory.state.nextRecruitId=number+1;
+    inventory.state.roster.push({id,classId:'ranger',name:'Aeldari Ranger '+number,...window.EXPEDITION_METABOLISM.ranger});
+    const ranks=[3,2,4,1];inventory.state.roster.forEach((hero,i)=>hero.rank=ranks[i]);
+    syncCrew();inventory.save();renderHire();
+  }
   let expeditionReport = null;
   let mapOpen = false;
   const names = {ship:'Rogue Trader Yacht', docks:'Docks', bar:'Tavern', market:'Market', temple:'Shrine', workshop:'Workshops'};
@@ -302,7 +314,7 @@
   function go(destination) {
     if (hubLoading) return;
     if(destination==='mission'&&!inventory.run&&!expeditionCrew.some(hero=>!inventory.resting(hero.id))){
-      const panel=app.querySelector('.portal-panel, .building-panel');if(panel&&!panel.querySelector('.rest-warning'))panel.insertAdjacentHTML('afterbegin','<p class="rest-warning" role="alert">All crew members are resting. Cancel a rest assignment or recruit another companion before departure.</p>');return;
+      const panel=app.querySelector('.portal-panel, .building-panel');if(panel&&!panel.querySelector('.rest-warning'))panel.insertAdjacentHTML('afterbegin','<p class="rest-warning" role="alert">No crew available. Recruit at the Tavern or cancel a rest assignment before departure.</p>');return;
     }
     if (buildingEffects[page] && destination !== page) fadeEffect(buildingEffects[page]);
     if (page === 'hub' && buildingEffects[destination]) playEffect(buildingEffects[destination]);
@@ -320,7 +332,7 @@
     }
     const fromMission = page === 'mission';
     if (fromMission && destination !== 'mission') {
-      expeditionReport = inventory.finish(!!mission?.defeated,{fled:!!mission?.fleeing});
+      expeditionReport = inventory.finish(!!mission?.defeated,{fled:!!mission?.fleeing});syncCrew();
     }
     if (page === 'mission' && destination !== 'mission') {
       mission?.stopCombat?.();
@@ -362,6 +374,15 @@
     return Object.entries({overall:'Overall',music:'Music',sfx:'SFX'}).map(([name,label]) => `<label class="volume-control" for="volume-${name}"><span>${label}</span><output for="volume-${name}">${volumes[name]}%</output><input id="volume-${name}" type="range" min="0" max="100" step="1" value="${volumes[name]}" data-volume="${name}"></label>`).join('');
   }
 
+  function openCharacter(id){
+    const hero=inventory.run?.party.find(h=>h.id===id);if(!hero||document.querySelector('.character-dialog'))return;
+    keys.clear();const mod=window.Morale.modifiers(hero),condition=window.Morale.states[hero.affliction];
+    const row=(label,value,note='')=>`<dt>${label}</dt><dd>${value}${note?` <small>${note}</small>`:''}</dd>`;
+    const dialog=document.createElement('dialog');dialog.className='options-dialog character-dialog';
+    dialog.innerHTML=`<header><h2>${escapeText(hero.name)}</h2>${button('Close','character-close',{small:true})}</header><div class="character-layout"><img class="character-portrait" src="portraits/aeldari-ranger.png" alt="${escapeText(hero.name)}"><div><p>Level ${hero.level||1} · Rank ${hero.rank} · ${hero.hp<=0?'Fallen':'Aeldari Ranger'}</p><dl class="character-stats">${row('Health',`${hero.hp} / ${hero.maxHp}`)}${row('Morale',`${hero.morale??100} / ${hero.maxMorale||100}`)}${row('Speed',(hero.speed??6)+(mod.speed||0),mod.speed?`base ${hero.speed??6}, ${mod.speed}`:'')}${row('Accuracy modifier',`${mod.accuracy||0}%`,'applies to each skill')}${row('Damage',`${Math.round((mod.damage||1)*100)}%`,'of skill damage')}${row('Critical modifier',`${(hero.critBonus||0)+(mod.crit||0)}%`,'added to skill chance')}${row('Incoming damage',`${Math.round((mod.incoming||1)*100)}%`)}${row('Stress resistance',`${Math.round((hero.stressResistance||0)*100)}%`)}</dl><h3>Conditions & afflictions</h3><p class="character-affliction">${condition?escapeText(condition.name)+' — '+escapeText(condition.description):'No psychological afflictions'}</p><p>${hero.bleed?'Bleeding · '+hero.bleed+'<br>':''}${hero.poison?'Poisoned · '+hero.poison+'<br>':''}${hero.evade?'Evasion ready':''}</p><h3>Positive traits</h3><p>${hero.positiveTraits?.length?hero.positiveTraits.map(t=>escapeText(t.name||t)).join(', '):'None'}</p><h3>Abilities</h3><p>Rifle Shot · 90% hit · 5–8 damage · 8% CRIT<br>Aimed Shot · 80% hit · 8–12 damage · 12% CRIT<br>Blade Strike · 95% hit · 4–7 damage · 5% CRIT<br>Evasive Step · Move back and evade</p><small>Base ability values; modifiers above apply in combat.</small></div></div>`;
+    app.append(dialog);dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();
+  }
+
   function openOptions() {
     if (optionsOpen) return;
     optionsOpen = true;
@@ -370,7 +391,7 @@
     const dialog = document.createElement('dialog');
     dialog.className = 'options-dialog';
     dialog.setAttribute('aria-labelledby', 'options-title');
-    dialog.innerHTML = `<div class="tag">Blackstone Expedition</div><h2 id="options-title">Options</h2><p>Audio levels</p>${volumeControls()}<div class="options-actions">${button(soundEnabled ? 'Music On' : 'Music Off', 'options-music', {small:true})}${button('Back to Game', 'options-close', {small:true})}</div>`;
+    dialog.innerHTML = `<div class="tag">Blackstone Expedition</div><h2 id="options-title">Options</h2><p>Audio levels</p>${volumeControls()}<div class="options-actions">${button(soundEnabled ? 'Music On' : 'Music Off', 'options-music', {small:true})}${button('Export Save','campaign-export-current',{small:true})}${button('Main Menu','campaign-menu',{small:true})}${button('Back to Game', 'options-close', {small:true})}</div>`;
     app.append(dialog);
     dialog.addEventListener('cancel', event => { event.preventDefault(); closeOptions(); });
     dialog.showModal();
@@ -388,11 +409,36 @@
     optionsReturnFocus = null;
   }
 
+  function loadCampaign(index){
+    const state=window.CampaignSaves.select(index);
+    inventory.state=state;
+    inventory.state.heroProfiles||={};inventory.state.restSlots||={bar:[],temple:[],ship:[]};inventory.state.buildingLevels||={};
+    for(const name of buildingOrder)buildingLevel[name]=Math.max(1,Math.min(3,state.buildingLevels[name]||1));
+    syncCrew();expeditionReport=null;mapOpen=false;go(inventory.run?'mission':'hub');
+  }
+  function campaignDialog(mode){
+    const saves=window.CampaignSaves;
+    const dialog=document.createElement('dialog');dialog.className='options-dialog campaign-dialog';
+    dialog.innerHTML=`<h2>${mode==='new'?'New Game':'Load Game'}</h2><p>${escapeText(saves.notice)}</p><div class="campaign-slots">${saves.data.slots.map((slot,i)=>`<section class="campaign-slot"><h3>Campaign ${i+1}</h3><p>${slot?`${slot.state.run?'The First Passage':'Precipice'} · ${escapeText(slot.state.difficulty)}<br>${Number(slot.state.credits).toLocaleString('en')} Thrones · ${new Date(slot.updated).toLocaleString()}<br>${escapeText(slot.state.run?.party.map(h=>h.name||h.id).join(', ')||'Aeldari Ranger')}`:'Empty slot'}</p>${mode==='new'?`<select aria-label="Difficulty" data-save-difficulty="${i}">${Object.keys(window.EXPEDITION_DIFFICULTIES).map(d=>`<option ${d==='normal'?'selected':''}>${d}</option>`).join('')}</select><button class="btn small" data-save-create="${i}">${slot?'Replace campaign':'Start campaign'}</button>`:`<button class="btn small" data-save-load="${i}" ${slot?'':'disabled'}>Continue</button><button class="btn small" data-save-export="${i}" ${slot?'':'disabled'}>Export</button><button class="btn small" data-save-import="${i}">Import</button>`}</section>`).join('')}</div><p class="save-message" role="status"></p><button class="btn small" data-save-close>Back</button>`;
+    app.append(dialog);dialog.showModal();dialog.addEventListener('close',()=>dialog.remove());
+    dialog.addEventListener('click',async event=>{
+      const b=event.target.closest('button');if(!b)return;
+      const message=dialog.querySelector('.save-message');
+      try{
+        if(b.hasAttribute('data-save-close')){dialog.close();return;}
+        if(b.dataset.saveExport!==undefined){saves.export(Number(b.dataset.saveExport));return;}
+        if(b.dataset.saveLoad!==undefined){dialog.close();loadCampaign(Number(b.dataset.saveLoad));return;}
+        if(b.dataset.saveCreate!==undefined){const i=Number(b.dataset.saveCreate);if(saves.data.slots[i]&&!confirm('Replace this campaign? Export it first if you want to keep it.'))return;saves.create(i,dialog.querySelector(`[data-save-difficulty="${i}"]`).value);dialog.close();loadCampaign(i);return;}
+        if(b.dataset.saveImport!==undefined){const i=Number(b.dataset.saveImport);const input=document.createElement('input');input.type='file';input.accept='.json,application/json';input.onchange=async()=>{try{if(!input.files[0])return;if(input.files[0].size>2000000)throw Error('Save file is too large');if(saves.data.slots[i]&&!confirm('Replace this campaign with the imported save?'))return;saves.import(i,await input.files[0].text());dialog.close();loadCampaign(i);}catch(e){message.textContent=e.message;}};input.click();}
+      }catch(e){message.textContent=e.message;}
+    });
+  }
+  window.addEventListener('save-error',()=>{let warning=document.querySelector('#save-warning');if(!warning){warning=document.createElement('div');warning.id='save-warning';warning.setAttribute('role','alert');document.body.append(warning);}warning.textContent=window.CampaignSaves.notice;});
   function renderMenu() {
     const controls = volumeControls();
     const content = settingsOpen
       ? `<div class="settings-panel"><h2>Settings</h2><p>Sound levels</p>${controls}<nav class="menu-nav settings-nav">${button(musicLabel(),'sound')}${button('Back to Menu','settings-back')}</nav></div>`
-      : `<p>Enter the fortress from Precipice. The first passage is ready to explore.</p><nav class="menu-nav">${inventory.run?button('Resume Expedition','mission'):button('Enter Precipice','hub')}${button('Settings','settings')}</nav>`;
+      : `<p>Enter the fortress from Precipice. The first passage is ready to explore.</p><nav class="menu-nav">${button('Continue','campaign-continue',{disabled:window.CampaignSaves.data.active===null})}${button('New Game','campaign-new')}${button('Load Game','campaign-load')}${button('Settings','settings')}</nav>`;
     app.innerHTML = `<section class="scene" style="background-image:url('backgrounds/main-menu.png')"><div class="menu-shell"><h1 class="game-logo"><img src="branding/blackstone-expedition-logo.png" alt="Blackstone Expedition"></h1>${content}<p class="menu-hint">Click anywhere to start the menu music.</p></div><aside class="parchment"><h2>Captain's Log</h2><p>Precipice is the port near the fortress. Visit the docks, select a portal, and guide the Ranger through the passage.</p></aside></section>`;
     updateMusicControl();
   }
@@ -410,17 +456,19 @@
       const src = place ? `layers/${place}-level-${level}.png?set=building-order-2` : `hub/${layer.src.split('/').pop()}`;
       const style = `left:${layout.x/16.72}%;top:${layout.y/9.41}%;width:${layout.w/16.72}%;${layout.h == null ? '' : `height:${layout.h/9.41}%;`}z-index:${index+1};opacity:${(layer.opacity ?? 100)/100};${layer.crop ? `clip-path:inset(${layer.crop}% 0 0 0)` : 'clip-path:none'};--label-left:${Math.max(0,-layout.x)/layout.w*100}%`;
       const imageStyle = `transform:rotate(${layout.rotation ?? layer.rotation ?? 0}deg)`;
+      // The level-three dock artwork extends behind the tavern; only its lower platform is interactive.
+      if(place==='docks'&&level===3)return `<div class="hub-sprite" style="${style}"><img src="${src}" alt="" style="${imageStyle};height:100%;object-fit:contain;object-position:center bottom"><button class="landmark hub-sprite" type="button" data-action="docks" aria-label="Docks, level 3" title="Docks" style="left:4%;top:48%;width:88%;height:48%;--label-left:0%"><span>Docks · Level 3</span></button></div>`;
       if (place && level) return `<button class="landmark hub-sprite" type="button" data-action="${place}" aria-label="${names[place]}, level ${level}" title="${names[place]}" style="${style}"><img src="${src}" alt="" style="${imageStyle}"><span>${names[place]} · Level ${level}</span></button>`;
       return `<div class="hub-sprite" style="${style}"><img src="${src}" alt="" style="${imageStyle}"></div>`;
     }).join('');
     const debris = `<div class="hub-debris-field" aria-hidden="true"><img src="hub/debris-1.png" alt=""><img src="hub/debris-2.png" alt=""><img src="hub/debris-3.png" alt=""><img src="hub/debris-1.png" alt=""><img src="hub/debris-2.png" alt=""></div>`;
-    app.innerHTML = `<section class="stage hub-layout"><div class="map">${debris}${layers}<div class="map-tip">Select the Docks to enter the fortress</div></div><div class="map-label">Precipice</div>${window.GameHUD.hub(inventory,{...expeditionCrew[0],...inventory.state.heroProfiles.ranger})}${renderBaseControls()}${renderBaseStock()}</section>`;
+    app.innerHTML = `<section class="stage hub-layout"><div class="map">${debris}${layers}<div class="map-tip">Select the Docks to enter the fortress</div></div><div class="map-label">Precipice</div>${expeditionCrew.length?window.GameHUD.hub(inventory,expeditionCrew.map(hero=>({...hero,...inventory.state.heroProfiles[hero.id]}))):'<aside class="hub-commander">No crew · Recruit at the Tavern</aside>'}${renderBaseControls()}${renderBaseStock()}</section>`;
   }
 
   function renderHire() {
     const hero = heroes[selectedHero];
     const roster = heroes.map((item,index) => `<button type="button" class="recruit${selectedHero === index ? ' active' : ''}${item.available ? '' : ' locked'}" data-action="hero-${index}" ${item.available ? '' : 'disabled'}><img src="portraits/${item.file}.png" alt=""><span><strong>${item.name}</strong><small>${item.role} · ${item.available ? 'Selected' : 'Coming Soon'}</small></span></button>`).join('');
-    app.innerHTML = `${renderTop()}<section class="scene" style="background-image:url('backgrounds/recruitment.png')"><div class="hire-wrap"><h2>Recruit Companions</h2><p class="caption">The Aeldari Ranger is available for this mission test. Other classes are coming soon.</p><div class="party"><div class="slot">Aeldari Ranger</div><div class="slot">Coming Soon</div><div class="slot">Coming Soon</div><div class="slot">Coming Soon</div></div><div class="hire-layout"><div class="roster">${roster}</div><div class="detail"><img src="portraits/${hero.file}.png" alt="Aeldari Ranger"><div><h3>${hero.name}</h3><dl class="facts"><dt>Role</dt><dd>${hero.role}</dd><dt>Ranks</dt><dd>${hero.positions}</dd><dt>Trait</dt><dd>${hero.trait}</dd><dt>Recovery</dt><dd>${hero.rest}</dd></dl><p class="tag">Starting abilities</p><ul class="moves">${hero.moves.map(move => `<li>${move}</li>`).join('')}</ul>${button('Selected for Expedition','',{disabled:true})}</div></div></div><div class="hire-back">${button('Back to Tavern','bar',{small:true})}</div></div></section>`;
+    app.innerHTML = `${renderTop()}<section class="scene" style="background-image:url('backgrounds/recruitment.png')"><div class="hire-wrap"><h2>Recruit Companions</h2><p class="caption">Test recruitment: hire up to four Rangers for free. Each has independent health, morale and rest assignments.</p><div class="party">${Array.from({length:4},(_,i)=>`<div class="slot">${expeditionCrew[i]?escapeText(expeditionCrew[i].name):"Empty slot"}</div>`).join('')}</div><div class="hire-layout"><div class="roster">${roster}</div><div class="detail"><img src="portraits/${hero.file}.png" alt="Aeldari Ranger"><div><h3>${hero.name}</h3><dl class="facts"><dt>Role</dt><dd>${hero.role}</dd><dt>Ranks</dt><dd>${hero.positions}</dd><dt>Trait</dt><dd>${hero.trait}</dd><dt>Recovery</dt><dd>${hero.rest}</dd></dl><p class="tag">Starting abilities</p><ul class="moves">${hero.moves.map(move => `<li>${move}</li>`).join('')}</ul>${button(expeditionCrew.length>=4?'Crew full · 4 / 4':'Recruit Ranger · Free','recruit-ranger',{disabled:expeditionCrew.length>=4||!!inventory.run})}</div></div></div><div class="hire-back">${button('Back to Tavern','bar',{small:true})}</div></div></section>`;
   }
 
   let selectedRestSlot=null;
@@ -476,6 +524,14 @@
     const target = event.target.closest('[data-action]');
     if (!target || target.disabled || hubLoading) return;
     const action = target.dataset.action;
+    if(action.startsWith('inspect-hero-')){openCharacter(action.slice(13));return;}
+    if(action==='character-close'){document.querySelector('.character-dialog')?.close();return;}
+    if(action==='recruit-ranger'){recruitRanger();return;}
+    if(action==='campaign-new'||action==='campaign-load'){campaignDialog(action==='campaign-new'?'new':'load');return;}
+    if(action==='campaign-continue'){if(window.CampaignSaves.data.active!==null)loadCampaign(window.CampaignSaves.data.active);return;}
+    if(action==='campaign-export-current'){window.CampaignSaves.export(window.CampaignSaves.data.active);return;}
+    if(action==='campaign-menu'){closeOptions();inventory.save();mission?.stopCombat?.();mission=null;keys.clear();page='menu';settingsOpen=false;render();return;}
+
     if(action.startsWith('rest-select-')){selectedRestSlot=Number(action.slice(12));refreshRest();return;}
     if(action.startsWith('rest-cancel-')){inventory.cancelRest(page,Number(action.slice(12)));selectedRestSlot=null;refreshRest();return;}
     if(action.startsWith('rest-assign-')){const hero=expeditionCrew.find(h=>h.id===action.slice(12));if(hero&&selectedRestSlot!==null)inventory.assignRest(page,selectedRestSlot,hero);selectedRestSlot=null;refreshRest();return;}
@@ -499,6 +555,7 @@
     else if (action.startsWith('hero-')) { selectedHero = Number(action.slice(5)); render(); }
     else go(action);
   });
+  app.addEventListener('keydown',event=>{if(event.target.matches('[data-crew-hud]')&&['Enter',' '].includes(event.key)){event.preventDefault();event.target.click();}});
   app.addEventListener('input', event => {
     const input = event.target.closest('[data-volume]');
     if (!input) return;
@@ -531,7 +588,7 @@
   });
 
   addEventListener('keydown', event => {
-    if (page !== 'mission' || optionsOpen || mapOpen || hubLoading) return;
+    if (page !== 'mission' || optionsOpen || mapOpen || hubLoading || document.querySelector('.character-dialog[open]')) return;
     if (event.key.toLowerCase() === 'i' && !supplies.isOpen && !mission?.combat && !mission?.entering) {event.preventDefault();openInventory();return;}
     if (supplies.isOpen) return;
     const key = event.key.toLowerCase();
@@ -687,6 +744,17 @@
     mission = {viewport, canvas, ctx, encounterDone:!!inventory.run?.encounterDone, x:innerHeight * (inventory.run?.progress??.48), facing:1, camera:0, animation:'idle', animationTime:0, lastTime:0, entering:false};
     keys.clear();
     mountPassageProps(viewport);
+    const portalExits=['left','right'].map(side=>{
+      const exit=document.createElement('button');exit.className='portal-exit';exit.dataset.portalExit=side;
+      exit.innerHTML=window.CombatUI.icon('exit');exit.title='Return to Precipice · 10 energy';exit.setAttribute('aria-label',exit.title);exit.hidden=true;
+      exit.addEventListener('click',()=>{
+        const state=mission;if(!state)return;
+        if(exit.disabled||state.entering||state.combat||hubLoading||optionsOpen||mapOpen||supplies.isOpen)return;
+        keys.clear();if(!payPortalEnergy())return;
+        state.entering=true;playEffect('teleportOut');document.querySelector('#missionFade').classList.add('active');
+        setTimeout(()=>{if(mission===state)go('hub');},650);
+      });viewport.append(exit);return exit;
+    });
     const loadingState=mission;
     const backdropSources = ['corridor/repeat/blackstone_bg10_deepplanes_c_1024.png',
       'corridor/atmosphere/blackstone_bg30_fog_a_1024.png',
@@ -705,7 +773,7 @@
       const width = viewport.clientWidth;
       const worldWidth = unit * 6;
       const maxCamera = Math.max(0, worldWidth-width);
-      const direction = (hubLoading || optionsOpen || mapOpen || supplies.isOpen || state.combat) ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+      const direction = (hubLoading || optionsOpen || mapOpen || supplies.isOpen || document.querySelector('.character-dialog[open]') || state.combat) ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
       if (!state.entering && direction) {
         state.x = clamp(state.x + direction * unit * .27 * dt, unit*.29, unit*5.75);
         if(!inventory.run?.events.obstacle)state.x=Math.min(state.x,unit*2.98);
@@ -718,9 +786,9 @@
       const targetCamera = clamp(state.combat ? unit*2.05-width*.5 : state.x-width*.38, 0, maxCamera);
       state.camera += (targetCamera-state.camera) * Math.min(1,dt*8);
       const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const cameraGoal=state.combat&&!reduced?1.065:1;
+      const cameraGoal=state.combat&&!state.stressFocus&&!reduced?1.065:1;
       state.battleZoom=(state.battleZoom??1)+(cameraGoal-(state.battleZoom??1))*(1-Math.exp(-dt*4));
-      const viewGoal=state.combat&&state.viewSide&&!reduced?(state.viewSide==='party'?1:-1):0;
+      const viewGoal=state.combat&&!state.stressFocus&&state.viewSide&&!reduced?(state.viewSide==='party'?1:-1):0;
       state.viewBias=(state.viewBias||0)+(viewGoal-(state.viewBias||0))*(1-Math.exp(-dt*6));
       positionPassageProps(state,unit);
       document.querySelector('#deep').style.backgroundPosition = `${-state.camera*.10}px center`;
@@ -759,13 +827,17 @@
       const screenX = state.x-state.camera;
       if(!state.combat)window.ExpeditionSpeech?.position('ranger',width*.5+(screenX-width*.5)*state.battleZoom,footY-size*.69*state.battleZoom);
       if (!state.combat && image.complete && image.naturalWidth) {
+        for(const [crewIndex,hero] of inventory.run.party.filter(h=>h.hp>0).entries()){
+        const heroScreenX=screenX-crewIndex*unit*.16;
+        window.ExpeditionSpeech?.position(hero.id,width*.5+(heroScreenX-width*.5)*state.battleZoom,footY-size*.69*state.battleZoom);
         ctx.save();
-        ctx.translate(width*.5+(screenX-width*.5)*state.battleZoom,footY);
+        ctx.translate(width*.5+(heroScreenX-width*.5)*state.battleZoom,footY);
         ctx.scale(state.battleZoom,state.battleZoom);
         ctx.scale(state.facing,1);
         if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
         else window.drawRanger(ctx,image,'idle',state.animationTime,-size/2,-size*(468/512),size);
         ctx.restore();
+        }
       }
       if (!hubLoading && !mapOpen && !supplies.isOpen && !inventory.run?.defeated && !state.combat && !state.encounterDone && state.x >= unit*1.65) {
         state.combat = true;
@@ -773,21 +845,24 @@
         setMusic();
         state.stopCombat = window.startBlackstoneBattle({
           party:inventory.run.party,
+          snapshot:inventory.run.battle,
+          onCheckpoint:snapshot=>{if(inventory.run){inventory.run.battle=snapshot;inventory.save();}},
           getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,size:Math.min(viewport.clientHeight*.48,410),zoom:state.battleZoom,bias:state.viewBias,center:viewport.clientWidth*.5}),
           onCameraSide:side=>{state.viewSide=side;},
+          onStressFocus:id=>{state.stressFocus=id;},
           onOptions:openOptions,
           onFlee:fleeExpedition,
           onInventory:refresh=>openInventory(true,refresh),
-          onPartyChange:party=>{if(inventory.run){inventory.run.party=party;if(party.every(u=>u.hp<=0))inventory.run.defeated=true;inventory.save();updateResourceHUD();}},
+          onPartyChange:party=>{if(inventory.run){inventory.run.party=party;inventory.recordDeaths(party);syncCrew();if(party.every(u=>u.hp<=0))inventory.run.defeated=true;inventory.save();updateResourceHUD();}},
           onDefeat:()=>{state.defeated=true;inventory.run.defeated=true;inventory.save();setMusic();},
-          onVictory:()=>{state.victoryCue=true;inventory.run.encounterDone=true;inventory.queueLoot([{id:'credits',qty:650},{id:'salvage',qty:4}]);setMusic();},
+          onVictory:()=>{state.victoryCue=true;inventory.run.encounterDone=true;delete inventory.run.battle;inventory.queueLoot([{id:'credits',qty:650},{id:'salvage',qty:4}]);setMusic();},
           onAttack:(unit,skill)=>{
-            if(unit.id==='ranger' && ['shot','aim'].includes(skill))playEffect('rangerShoot');
+            if(unit.side==='party' && ['shot','aim'].includes(skill))playEffect('rangerShoot');
             else if(unit.id==='raider')playEffect('hormagauntAttack');
             else if(unit.id==='gunner')playEffect('termagantShoot');
           },
           onHit:(unit,lethal)=>{
-            if(unit.id==='ranger')playEffect(lethal?'rangerDeath':'rangerHit');
+            if(unit.side==='party')playEffect(lethal?'rangerDeath':'rangerHit');
             else if(unit.side==='enemy')playEffect(lethal?'tyranidDeath':(++tyranidHitVariant%2?'tyranidHit1':'tyranidHit2'));
           },
           onFinish:result => {
@@ -797,13 +872,13 @@
           }
         });
       }
-      if (!hubLoading && !mapOpen && !supplies.isOpen && !state.combat && !state.entering && (state.x >= unit*5.72 || state.x <= unit*.32)) {
-        if (!payPortalEnergy()) { state.x=clamp(state.x,unit*.34,unit*5.70); requestAnimationFrame(tick); return; }
-        state.entering = true;
-        playEffect('teleportOut');
-        document.querySelector('#missionFade').classList.add('active');
-        setTimeout(() => { if (mission === state) go('hub'); },650);
-      }
+      portalExits.forEach((exit,i)=>{
+        const near=i===0?state.x<unit*.95:state.x>unit*5.05;
+        exit.hidden=!near||state.combat||state.entering||hubLoading;
+        exit.disabled=optionsOpen||mapOpen||supplies.isOpen;
+        exit.style.left=clamp((i===0?unit*.34:unit*5.68)-state.camera,36,width-36)+'px';
+        exit.style.top=(unit*.59)+'px';
+      });
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
