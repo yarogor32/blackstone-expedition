@@ -698,10 +698,10 @@
     image.src = path;
     return image;
   }
-  const walkAtlas = loadImage('sprites/ranger-walk.png');
-  const idleAtlas = loadImage('sprites/ranger-idle.png');
-  const sororitasWalkAtlas = loadImage('sprites/sororitas-walk.png');
-  const sororitasIdleAtlas = loadImage('sprites/sororitas-idle.png');
+  const walkAtlas = loadImage('sprites/ranger-walk.webp');
+  const idleAtlas = loadImage('sprites/ranger-idle.webp');
+  const sororitasWalkAtlas = loadImage('sprites/sororitas-walk.webp');
+  const sororitasIdleAtlas = loadImage('sprites/sororitas-idle.webp');
   const encounterImages = [window.combatImages.raider,window.combatImages.gunner];
 
 

@@ -39,7 +39,7 @@ Rest costs 250 Thrones at assignment and completes upon return of the next exped
 - morale.js: tuning constants, condition definitions, probability formula.
 - locales/expedition-en.js: 5 categories, 3 lines per category for Ranger, Rogue Trader, Kroot, Mechanicus, Space Marine and Drukhari; human/default fallback. English source for later translations.
 - expedition-speech.js: no immediate repeated line in the same hero/category; 4-second text barks. Neutral at battle entry and every 30 seconds of exploration; positive on hit/evasion; negative on miss/damage; extreme variants on outgoing/incoming critical hits. Dead heroes do not speak.
-- sprites/ranger-stress.png: existing Ranger_Stress import, original normalized sheet preserved.
+- sprites/ranger-stress.webp: existing Ranger_Stress import, lossless runtime sheet.
 - branding/miss.png and branding/crit.png: generated with built-in image_gen. Prompt: single compact text-only hand-painted gothic serif wordmark, exactly MISS / CRIT, deep ink shadows; MISS bone ivory, CRIT antique gold with restrained red; transparent background; no frame, skulls, plaque or scene; legible at 110px width.
 
 Checks: deterministic model tests for both-side crits/misses, losses, breakdown, modifiers, lethal handling, persistence; browser checks for PNG labels, stress animation timing and paid treatment.

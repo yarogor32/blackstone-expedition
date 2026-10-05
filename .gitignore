@@ -1,2 +1,5 @@
 # Local source renders used to produce runtime sprite sheets.
 assets/animations/
+
+# Editable lossless sources; the game loads the WebP runtime copies.
+sprites/*.png
