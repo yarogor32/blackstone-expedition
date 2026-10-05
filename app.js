@@ -579,7 +579,7 @@
     const layout=window.BlackstoneRooms.ensureRun(inventory.run);
     const room=window.BlackstoneRooms.getRoom(layout,layout.current)||window.BlackstoneRooms.getRoom(layout);
     layout.current=room.id;room.visited=true;inventory.save();
-    app.innerHTML=`<section class="raid-room" id="mission" data-room-id="${escapeText(room.id)}">${window.BlackstoneRooms.renderLayers(room.variants)}<canvas id="hero" aria-label="Expedition party in a Blackstone chamber"></canvas><button type="button" class="room-exit left" data-room-exit="corridor" aria-label="Return to the corridor" title="Return to the corridor">${window.CombatUI.icon('exit')}</button><button type="button" class="room-exit right" data-room-exit="precipice" aria-label="Use the far portal" title="Return to Precipice · 10 energy">${window.CombatUI.icon('exit')}</button><div class="mission-location">BLACKSTONE CHAMBER · ${room.index+1}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    app.innerHTML=`<section class="raid-room" id="mission" data-room-id="${escapeText(room.id)}">${window.BlackstoneRooms.renderLayers(room.variants)}<canvas id="hero" aria-label="Expedition party in a Blackstone chamber"></canvas><button type="button" class="room-exit left" data-room-exit="corridor" data-label="Enter corridor" aria-label="Return to the corridor" title="Return to the corridor"></button><button type="button" class="room-exit right" data-room-exit="precipice" data-label="Leave chamber" aria-label="Use the far portal" title="Return to Precipice · 10 energy"></button><div class="mission-location">BLACKSTONE CHAMBER · ${room.index+1}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
     mountResourceHUD();
     missionReady=startRaidRoom(room);
   }
@@ -862,10 +862,9 @@
       const width=viewport.clientWidth,unit=viewport.clientHeight;
       const blocked=hubLoading||optionsOpen||mapOpen||supplies.isOpen||document.querySelector('.character-dialog[open]');
       const direction=blocked?0:Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft'));
-      if(!state.entering&&direction){state.roomX=clamp(state.roomX+direction*.24*dt,.08,.92);state.facing=direction;inventory.run.roomPosition=state.roomX;}
+      if(!state.entering&&direction){state.roomX=clamp(state.roomX+direction*.24*dt,.035,.965);state.facing=direction;inventory.run.roomPosition=state.roomX;}
       const animation=direction?'walk':'idle';if(state.animation!==animation){state.animation=animation;state.animationTime=0;}else state.animationTime+=dt;
-      const leftExit=exits.find(exit=>exit.dataset.roomExit==='corridor'),rightExit=exits.find(exit=>exit.dataset.roomExit==='precipice');
-      leftExit.hidden=state.roomX>.2||state.entering;rightExit.hidden=state.roomX<.8||state.entering;
+      for(const exit of exits){const bounds=exit.getBoundingClientRect(),portalX=bounds.left+bounds.width*.5,near=Math.abs(width*state.roomX-portalX)<unit*.2;exit.disabled=!near||state.entering;exit.classList.toggle('near',near&&!state.entering);}
       const dpr=Math.min(devicePixelRatio||1,2);if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(unit*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(unit*dpr);canvas.style.width=width+'px';canvas.style.height=unit+'px';}
       ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,unit);
       const isWalk=state.animation==='walk',size=Math.min(unit*.48,410),footY=unit*(846/1024),screenX=width*state.roomX;
