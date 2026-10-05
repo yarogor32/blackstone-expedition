@@ -100,7 +100,8 @@
     if(dialog)return;
     mode=options.mode||'bag';combat=!!options.combat;onClose=options.onClose;eventSpec=options.event;summary=options.summary;
     if(mode==='summary'){const category=summary.defeated?'defeated':summary.fled?'fled':'returned',locale=window.RETURN_DIALOGUE[document.documentElement.lang]||window.RETURN_DIALOGUE.en;const lines=locale[category];summary.returnLine=lines[Math.floor(Math.random()*lines.length)];}
-    target=inventory.run?.party.find(u=>u.hp>0)?.id;selected=-1;message='';moving=false;confirmDrop=false;confirmLootClose=false;
+    const living=inventory.run?.party.filter(u=>u.hp>0)||[];
+    target=(combat?living.find(u=>u.bleed):null)?.id||living[0]?.id;selected=-1;message='';moving=false;confirmDrop=false;confirmLootClose=false;
     dialog=document.createElement('dialog');dialog.className='inventory-dialog';dialog.setAttribute('aria-label',t('bag'));document.body.append(dialog);
     dialog.addEventListener('cancel',e=>{e.preventDefault();if(['bag','summary','loot'].includes(mode))requestClose();});
     renderDialog();dialog.showModal();

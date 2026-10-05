@@ -330,6 +330,9 @@
     page = 'mission';
     render();
     await missionReady;
+    // All battle poses are decoded while the loading parchment is still up.
+    // This prevents the first use of an attack or hit animation from pausing combat.
+    await window.warmCombatImages?.();
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     playEffect('teleportIn');
     overlay.classList.add('leaving');
@@ -570,7 +573,8 @@
 
   function renderMission() {
     if(missionArea==='room'){renderRaidRoom();return;}
-    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="distantLightning" aria-hidden="true"><svg viewBox="0 0 1600 1000" preserveAspectRatio="none"><g class="far-bolt bolt-a"><path d="M420 -20 L390 110 452 165 366 260 402 320 325 440 355 520 290 720 M366 260 L290 280 245 370 M402 320 L485 390 470 480"/></g><g class="far-bolt bolt-b"><path d="M1230 -20 L1170 100 1215 180 1120 290 1170 345 1060 490 1095 600 1020 820 M1120 290 L1030 320 990 430 M1170 345 L1270 420 1300 530"/></g></svg></div><div id="structures" class="world" aria-hidden="true"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:0vh;"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:180vh;transform:scaleX(-1);"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:360vh;"></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="corridorColumns" class="world" aria-hidden="true"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:-25vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:80vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:270vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:355vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:550vh;"></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-location">THE FIRST PASSAGE</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    const layout=window.BlackstoneRooms.ensureRun(inventory.run),corridor=window.BlackstoneRooms.getCorridor(layout,layout.currentCorridor||layout.current),passageNumber=corridor?.entry?'ENTRY':String((layout.corridors.indexOf(corridor)+1)||1).padStart(2,'0');
+    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="distantLightning" aria-hidden="true"><svg viewBox="0 0 1600 1000" preserveAspectRatio="none"><g class="far-bolt bolt-a"><path d="M420 -20 L390 110 452 165 366 260 402 320 325 440 355 520 290 720 M366 260 L290 280 245 370 M402 320 L485 390 470 480"/></g><g class="far-bolt bolt-b"><path d="M1230 -20 L1170 100 1215 180 1120 290 1170 345 1060 490 1095 600 1020 820 M1120 290 L1030 320 990 430 M1170 345 L1270 420 1300 530"/></g></svg></div><div id="structures" class="world" aria-hidden="true"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:0vh;"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:180vh;transform:scaleX(-1);"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:360vh;"></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="corridorColumns" class="world" aria-hidden="true"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:-25vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:80vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:270vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:355vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:550vh;"></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Expedition party in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-location">PASSAGE · ${passageNumber}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
     mountResourceHUD();
     missionReady = startMission();
   }
@@ -578,8 +582,8 @@
   function renderRaidRoom(){
     const layout=window.BlackstoneRooms.ensureRun(inventory.run);
     const room=window.BlackstoneRooms.getRoom(layout,layout.current)||window.BlackstoneRooms.getRoom(layout);
-    layout.current=room.id;room.visited=true;inventory.save();
-    app.innerHTML=`<section class="raid-room" id="mission" data-room-id="${escapeText(room.id)}">${window.BlackstoneRooms.renderLayers(room.variants)}<canvas id="hero" aria-label="Expedition party in a Blackstone chamber"></canvas><button type="button" class="room-exit left" data-room-exit="corridor" data-label="Enter corridor" aria-label="Return to the corridor" title="Return to the corridor"></button><button type="button" class="room-exit right" data-room-exit="precipice" data-label="Leave chamber" aria-label="Use the far portal" title="Return to Precipice · 10 energy"></button><div class="mission-location">BLACKSTONE CHAMBER · ${room.index+1}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    layout.current=room.id;window.BlackstoneRooms.revealRoom(layout,room.id);inventory.save();
+    app.innerHTML=`<section class="raid-room" id="mission" data-room-id="${escapeText(room.id)}">${window.BlackstoneRooms.renderLayers(room.variants)}<canvas id="hero" aria-label="Expedition party in a Blackstone chamber"></canvas><div class="mission-location">BLACKSTONE CHAMBER · ${room.index+1}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
     mountResourceHUD();
     missionReady=startRaidRoom(room);
   }
@@ -615,9 +619,17 @@
     if(action.startsWith('rest-assign-')){const hero=expeditionCrew.find(h=>h.id===action.slice(12));if(hero&&selectedRestSlot!==null&&inventory.assignRest(page,selectedRestSlot,hero)){inventory.state.expeditionPartyIds=(inventory.state.expeditionPartyIds||[]).filter(id=>id!==hero.id);inventory.save();}selectedRestSlot=null;refreshRest();return;}
     if(action.startsWith('dock-toggle-')){toggleExpeditionHero(action.slice(12));return;}
     if(action.startsWith('dock-remove-')){toggleExpeditionHero(action.slice(12),true);return;}
-    if (action === 'flee') {if(mission?.combat)document.querySelector('.combat-controls-proxy [data-cmd="flee"]')?.click();else fleeExpedition();}
-    else if (action === 'location-map') openLocationMap();
+    if (action === 'flee') {if(mission?.combat)document.querySelector('.combat-controls-proxy [data-cmd="flee"]')?.click();else requestFleeExpedition();}
+    else if(action==='flee-cancel'){document.querySelector('.flee-dialog')?.close();}
+    else if(action==='flee-confirm'){performFleeExpedition();}
+    else if(action==='camp-open')openCampMenu();
+    else if(action==='camp-close'){document.querySelector('.camp-dialog')?.close();}
+    else if(action==='camp-rest')restInRoom();
+    else if(action==='enter-room-platform')enterRoomFromPlatform(target);
+    else if (action === 'location-map') openLocationMap(false);
+    else if (action === 'leave-room') openLocationMap(true);
     else if (action === 'map-close') closeLocationMap();
+    else if (action.startsWith('map-route-')) chooseRaidRoute(action.slice(10));
     else if (action === 'inventory') {if(mission?.combat)document.querySelector('.combat-controls-proxy [data-cmd="inventory"]')?.click();else openInventory();}
     else if (action === 'sound') toggleSound();
     else if (action === 'options') openOptions();
@@ -682,8 +694,13 @@
   });
 
   addEventListener('keydown', event => {
-    if (page !== 'mission' || optionsOpen || mapOpen || hubLoading || document.querySelector('.character-dialog[open]')) return;
-    if (event.key.toLowerCase() === 'i' && !supplies.isOpen && !mission?.combat && !mission?.entering) {event.preventDefault();openInventory();return;}
+    if (page !== 'mission' || optionsOpen || mapOpen || hubLoading || document.querySelector('dialog[open]')) return;
+    if (event.key.toLowerCase() === 'i' && !supplies.isOpen && !mission?.entering) {
+      event.preventDefault();
+      if(mission?.combat)document.querySelector('.combat-controls-proxy [data-cmd="inventory"]')?.click();
+      else openInventory();
+      return;
+    }
     if (supplies.isOpen) return;
     const key = event.key.toLowerCase();
     if (['a','d','arrowleft','arrowright'].includes(key)) {
@@ -711,17 +728,26 @@
     image.src = path;
     return image;
   }
-  const walkAtlas = loadImage('sprites/ranger-walk.webp');
-  const idleAtlas = loadImage('sprites/ranger-idle.webp');
-  const sororitasWalkAtlas = loadImage('sprites/sororitas-walk.webp');
-  const sororitasIdleAtlas = loadImage('sprites/sororitas-idle.webp');
+  const walkAtlas = loadImage('sprites/ranger-walk-game.webp');
+  const idleAtlas = loadImage('sprites/ranger-idle-game.webp');
+  const sororitasWalkAtlas = loadImage('sprites/sororitas-walk-game.webp');
+  const sororitasIdleAtlas = loadImage('sprites/sororitas-idle-game.webp');
+  const GAME_ATLAS_CELL=384;
   const encounterImages = [window.combatImages.raider,window.combatImages.gunner];
 
 
-  function fleeExpedition() {
+  function performFleeExpedition() {
     if(page!=='mission'||hubLoading||mission?.entering||mission?.defeated)return;
+    document.querySelector('.flee-dialog')?.close();
     mission.fleeing=true;
     go('hub');
+  }
+  function requestFleeExpedition() {
+    if(page!=='mission'||hubLoading||mission?.entering||mission?.defeated||document.querySelector('.flee-dialog'))return;
+    keys.clear();const loss=window.EXPEDITION_DIFFICULTIES[inventory.run.difficulty].retreatLoss*100;
+    const dialog=document.createElement('dialog');dialog.className='options-dialog flee-dialog';
+    dialog.innerHTML=`<div class="tag">ABANDON EXPEDITION</div><h2>Flee the raid?</h2><p>The crew returns to Precipice and loses ${loss}% of collected loot. Every survivor also suffers 10 Morale damage.</p><div class="dialog-actions">${button('Continue the raid','flee-cancel',{small:true})}${button('Flee to Precipice','flee-confirm',{small:true})}</div>`;
+    dialog.addEventListener('close',()=>dialog.remove());dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close();});app.append(dialog);dialog.showModal();
   }
   function mountResourceHUD() {
     const hud=document.createElement('div');hud.className='expedition-resources';hud.id='expeditionResources';
@@ -731,20 +757,92 @@
     const hud=document.querySelector('#expeditionResources'),run=inventory.run;if(!hud||!run)return;
     hud.classList.toggle('energy-low',run.energy<25);
     const nav=(action,id,label,disabled=false)=>`<button class="expedition-icon" data-action="${action}" aria-label="${label}" title="${label}" ${disabled?'disabled':''}>${window.CombatUI.icon(id)}</button>`;
-    hud.innerHTML=`<nav class="expedition-tabs" aria-label="Expedition panels">${nav('flee','exit',`Flee — lose ${window.EXPEDITION_DIFFICULTIES[run.difficulty].retreatLoss*100}% of loot`,!!mission?.combat)}${nav('inventory','bag','Inventory [I]',!!mission?.combat)}${nav('options','gear','Options')}${nav('location-map','map','Location map')}</nav>${window.GameHUD.party(run.party)}<div class="expedition-stock"><span title="Equipment energy">${window.CombatUI.icon('energy')}<b class="energy-value">${Math.ceil(run.energy)}/100</b></span><span title="Provisions">${window.CombatUI.icon('food')}<b>${inventory.count('ration')}</b></span><span title="Power cells">${window.CombatUI.icon('cell')}<b>${inventory.count('cell')}</b></span><span title="Thrones">${window.CombatUI.icon('coins')}<b>${inventory.state.credits}</b></span><span title="Backpack slots">${window.CombatUI.icon('cargo')}<b>${inventory.state.slots.filter(Boolean).length}/16</b></span></div>`;
+    const roomControls=missionArea==='room'?`${nav('leave-room','room-exit','Leave chamber and choose a passage',!!mission?.combat)}${nav('camp-open','camp','Make camp in this chamber',!!mission?.combat||!!run.events[`camp:${run.raidLayout?.current}`])}`:'';
+    hud.innerHTML=`<nav class="expedition-tabs" aria-label="Expedition panels">${nav('flee','exit',`Flee — lose ${window.EXPEDITION_DIFFICULTIES[run.difficulty].retreatLoss*100}% of loot`,!!mission?.combat)}${nav('inventory','bag','Inventory [I]')}${roomControls}${nav('options','gear','Options')}${nav('location-map','map','Location map')}</nav><div class="raid-minimap" aria-label="Live expedition position">${renderRaidMap({compact:true})}</div>${window.GameHUD.party(run.party)}<div class="expedition-stock"><span title="Equipment energy">${window.CombatUI.icon('energy')}<b class="energy-value">${Math.ceil(run.energy)}/100</b></span><span title="Provisions">${window.CombatUI.icon('food')}<b>${inventory.count('ration')}</b></span><span title="Power cells">${window.CombatUI.icon('cell')}<b>${inventory.count('cell')}</b></span><span title="Thrones">${window.CombatUI.icon('coins')}<b>${inventory.state.credits}</b></span><span title="Backpack slots">${window.CombatUI.icon('cargo')}<b>${inventory.state.slots.filter(Boolean).length}/16</b></span></div>`;
   }
 
-  function openLocationMap() {
+  function raidMapGeometry(layout) {
+    const rooms=layout.rooms||[],entry=window.BlackstoneRooms.getRoom(layout,layout.entry);
+    const points=rooms.map(room=>({x:room.x*180,y:room.y*126}));
+    if(entry)points.push({x:entry.x*180-150,y:entry.y*126});
+    const xs=points.map(p=>p.x),ys=points.map(p=>p.y),pad=72;
+    return {minX:Math.min(...xs)-pad,minY:Math.min(...ys)-pad,width:Math.max(...xs)-Math.min(...xs)+pad*2,height:Math.max(...ys)-Math.min(...ys)+pad*2,point:room=>({x:room.x*180,y:room.y*126})};
+  }
+  function raidMarker(layout,geometry) {
+    const currentRoom=window.BlackstoneRooms.getRoom(layout,layout.current);
+    if(layout.current?.startsWith('room-')&&currentRoom){const point=geometry.point(currentRoom);return {x:point.x,y:point.y-38};}
+    const corridor=window.BlackstoneRooms.getCorridor(layout,layout.currentCorridor||layout.current);
+    if(!corridor)return geometry.point(window.BlackstoneRooms.getRoom(layout,layout.entry));
+    const fromId=layout.corridorFrom||corridor.from,toId=layout.corridorTo||corridor.to;
+    const mapTo=window.BlackstoneRooms.getRoom(layout,toId),to=geometry.point(mapTo);
+    const mapFrom=window.BlackstoneRooms.getRoom(layout,fromId),from=mapFrom?geometry.point(mapFrom):{x:to.x-150,y:to.y};
+    const raw=missionArea==='corridor'&&mission?.viewport?mission.x/mission.viewport.clientHeight:(inventory.run?.progress??.48);
+    const fromPosition=fromId?window.BlackstoneRooms.roomAccess(layout,corridor,fromId):(corridor.fromAccess??.34);
+    const toPosition=toId?window.BlackstoneRooms.roomAccess(layout,corridor,toId):(corridor.toAccess??5.68);
+    const span=(toPosition??5.68)-(fromPosition??.34);
+    const t=Math.abs(span)<.001?0:clamp((raw-(fromPosition??.34))/span,0,1);
+    return {x:from.x+(to.x-from.x)*t,y:from.y+(to.y-from.y)*t};
+  }
+  function renderRaidMap({selectRoute=false,compact=false}={}) {
+    const layout=window.BlackstoneRooms?.ensureRun(inventory.run);if(!layout)return '';
+    const geo=raidMapGeometry(layout),currentRoom=layout.current?.startsWith('room-')?layout.current:null;
+    const available=new Map((currentRoom?layout.connections[currentRoom]:[]).map(edge=>[edge.corridor,edge.room]));
+    const lines=layout.corridors.filter(c=>c.discovered).map(c=>{const a=geo.point(window.BlackstoneRooms.getRoom(layout,c.from)),b=geo.point(window.BlackstoneRooms.getRoom(layout,c.to));return `<line class="raid-map-corridor ${c.visited?'visited':''} ${layout.currentCorridor===c.id?'current':''}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;}).join('');
+    const entry=window.BlackstoneRooms.getRoom(layout,layout.entry),entryPoint=geo.point(entry),outside={x:entryPoint.x-150,y:entryPoint.y};
+    const entryLine=entry.discovered?`<line class="raid-map-corridor entry visited" x1="${outside.x}" y1="${outside.y}" x2="${entryPoint.x}" y2="${entryPoint.y}"/>`:'';
+    const rooms=layout.rooms.filter(room=>room.discovered).map(room=>{const p=geo.point(room),edge=[...available.entries()].find(([,id])=>id===room.id),clickable=selectRoute&&!!edge;return `<g class="raid-map-room ${room.visited?'visited':'scouted'} ${currentRoom===room.id?'current':''} ${clickable?'destination':''}" transform="translate(${p.x} ${p.y})" ${clickable?`data-action="map-route-${edge[0]}" role="button" tabindex="0" aria-label="Travel to chamber ${room.index+1}"`:''}><path d="M-26-20H26V20H-26Z M-18-12H18V12H-18Z" fill-rule="evenodd"/><text y="5">${room.index+1}</text>${clickable?'<path class="route-arrow" d="M-7 31H7L0 41Z"/>':''}</g>`;}).join('');
+    const marker=raidMarker(layout,geo);
+    const exit=`<g class="raid-map-exit" transform="translate(${outside.x} ${outside.y})"><path d="M0-24 18 0 0 24-18 0Z"/><circle r="7"/></g>`;
+    const finalCorridor=window.BlackstoneRooms.getCorridor(layout,layout.exitPortal?.corridor);let finalPortal='';
+    if(finalCorridor?.discovered){const a=geo.point(window.BlackstoneRooms.getRoom(layout,finalCorridor.from)),b=geo.point(window.BlackstoneRooms.getRoom(layout,finalCorridor.to)),t=clamp(((layout.exitPortal?.position??.5)-.34)/(5.68-.34),0,1),x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;finalPortal=`<g class="raid-map-final" transform="translate(${x} ${y})"><path d="M0-14 11 0 0 14-11 0Z"/><circle r="4"/></g>`;}
+    const fogCount=layout.rooms.filter(room=>!room.discovered).length;
+    return `<svg class="raid-map-svg" viewBox="${geo.minX} ${geo.minY} ${geo.width} ${geo.height}" role="img" aria-label="Explored chambers and corridors"><g class="raid-map-grid"><path d="M${geo.minX} 0H${geo.minX+geo.width}M0 ${geo.minY}V${geo.minY+geo.height}"/></g><g>${entryLine}${lines}${exit}${finalPortal}${rooms}</g><g class="raid-map-party" data-map-party transform="translate(${marker.x} ${marker.y})"><circle class="party-pulse" r="22"/><circle class="party-ring" r="15"/><path d="M0-13 10 7 0 13-10 7Z"/><circle class="party-core" cy="4" r="3"/></g>${fogCount?`<text class="raid-map-unknown" x="${geo.minX+18}" y="${geo.minY+28}">${fogCount} UNSURVEYED</text>`:''}</svg>`;
+  }
+  function updateRaidMapMarkers() {
+    const layout=inventory.run?.raidLayout;if(!layout)return;const geo=raidMapGeometry(layout),marker=raidMarker(layout,geo);
+    document.querySelectorAll('[data-map-party]').forEach(node=>node.setAttribute('transform',`translate(${marker.x} ${marker.y})`));
+  }
+  function openLocationMap(selectRoute=false) {
     if(hubLoading||mission?.entering||mapOpen)return;
     mapOpen=true;keys.clear();
     const dialog=document.createElement('dialog');dialog.className='location-map-dialog';
     dialog.setAttribute('aria-label','Location Map');
-    dialog.innerHTML=`<header><h2>Location Map</h2>${button('Close','map-close',{small:true})}</header><div class="map-placeholder"><strong>The First Passage</strong><p>No survey data available yet. Explored rooms, passages and portals will appear here.</p></div>`;
+    dialog.innerHTML=`<header><div><div class="tag">BLACKSTONE SURVEY</div><h2>${selectRoute?'Choose a passage':'Location Map'}</h2></div>${button('Close','map-close',{small:true})}</header><div class="raid-map-board ${selectRoute?'route-selection':''}">${renderRaidMap({selectRoute})}</div><footer><span><i class="legend-party"></i>Expedition</span><span><i class="legend-room"></i>Explored</span><span><i class="legend-scouted"></i>Revealed</span>${selectRoute?'<strong>Select an adjacent chamber</strong>':'<strong>Fog conceals the remaining fortress</strong>'}</footer>`;
     dialog.addEventListener('cancel',event=>{event.preventDefault();closeLocationMap();});
-    app.append(dialog);dialog.showModal();
+    app.append(dialog);
+    dialog.querySelectorAll('[data-action^="map-route-"]').forEach(route=>{
+      const choose=event=>{event.preventDefault();event.stopPropagation();chooseRaidRoute(route.dataset.action.slice(10));};
+      route.addEventListener('click',choose);
+      route.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){choose(event);}});
+    });
+    dialog.showModal();
   }
   function closeLocationMap() {
     const dialog=app.querySelector('.location-map-dialog');dialog?.close();dialog?.remove();mapOpen=false;keys.clear();
+  }
+  function chooseRaidRoute(corridorId) {
+    const layout=window.BlackstoneRooms.ensureRun(inventory.run),roomId=layout.current;
+    if(!roomId?.startsWith('room-'))return;
+    const corridor=window.BlackstoneRooms.getCorridor(layout,corridorId),destination=window.BlackstoneRooms.otherRoom(corridor,roomId);
+    if(!corridor||!destination||(layout.connections[roomId]||[]).every(edge=>edge.corridor!==corridorId))return;
+    corridor.discovered=true;layout.current=corridor.id;layout.currentCorridor=corridor.id;layout.corridorFrom=roomId;layout.corridorTo=destination;
+    inventory.run.progress=window.BlackstoneRooms.roomAccess(layout,corridor,roomId)??.44;
+    inventory.save();closeLocationMap();
+    const state=mission;if(state)state.entering=true;playEffect('teleportOut');document.querySelector('#missionFade')?.classList.add('active');
+    setTimeout(()=>{if(page!=='mission')return;missionArea='corridor';mission=null;renderMission();playEffect('teleportIn');},650);
+  }
+  function openCampMenu(){
+    const run=inventory.run,roomId=run?.raidLayout?.current;if(missionArea!=='room'||!run||run.events[`camp:${roomId}`]||document.querySelector('.camp-dialog'))return;
+    keys.clear();const cost=run.party.filter(hero=>hero.hp>0).reduce((sum,hero)=>sum+(hero.food>0?1:0),0),canRest=inventory.count('ration')>=cost;
+    const dialog=document.createElement('dialog');dialog.className='options-dialog camp-dialog';
+    dialog.innerHTML=`<div class="tag">CHAMBER REST</div><h2>Make Camp</h2><p>Secure this chamber and spend ${cost} ration${cost===1?'':'s'}. Survivors recover 20% Health and 10 Morale. Each chamber can be used once.</p><div class="camp-party">${run.party.filter(hero=>hero.hp>0).map(hero=>`<span>${window.GameHUD.face(hero)}<b>${escapeText(hero.name)}</b><small>${hero.hp}/${hero.maxHp} HP · ${hero.morale??100}/${hero.maxMorale||100} Morale</small></span>`).join('')}</div>${!canRest?'<p class="camp-warning">Not enough rations.</p>':''}<div class="dialog-actions">${button('Cancel','camp-close',{small:true})}${button(`Rest · ${cost} ration${cost===1?'':'s'}`,'camp-rest',{small:true,disabled:!canRest})}</div>`;
+    dialog.addEventListener('close',()=>dialog.remove());dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close();});app.append(dialog);dialog.showModal();
+  }
+  function restInRoom(){
+    const run=inventory.run,roomId=run?.raidLayout?.current,cost=run?.party.filter(hero=>hero.hp>0).reduce((sum,hero)=>sum+(hero.food>0?1:0),0)??0;
+    if(missionArea!=='room'||!run||run.events[`camp:${roomId}`]||inventory.count('ration')<cost)return;
+    if(cost)inventory.remove('ration',cost);for(const hero of run.party.filter(hero=>hero.hp>0)){hero.hp=Math.min(hero.maxHp,hero.hp+Math.ceil(hero.maxHp*.2));hero.morale=Math.min(hero.maxMorale||100,(hero.morale??100)+10);hero.stunned=null;}
+    run.events[`camp:${roomId}`]=true;inventory.save();document.querySelector('.camp-dialog')?.close();updateResourceHUD();
   }
   function openInventory(combat=false,refresh) {
     if(hubLoading||mission?.entering)return;
@@ -837,47 +935,43 @@
     }
   }
 
+  function enterRoomFromPlatform(control){
+    const state=mission,layout=inventory.run?.raidLayout,roomId=control?.dataset.roomId,position=Number(control?.dataset.worldPosition);
+    if(!state||!layout||!roomId||state.entering||state.combat||hubLoading||optionsOpen||mapOpen||supplies.isOpen)return;
+    const activeCorridor=window.BlackstoneRooms.getCorridor(layout,layout.currentCorridor||layout.current);
+    if(!activeCorridor||window.BlackstoneRooms.roomAccess(layout,activeCorridor,roomId)===null)return;
+    keys.clear();state.entering=true;document.querySelector('#missionFade')?.classList.add('active');
+    setTimeout(()=>{if(mission!==state)return;activeCorridor.visited=true;layout.current=roomId;window.BlackstoneRooms.revealRoom(layout,roomId);inventory.run.progress=position;inventory.save();missionArea='room';mission=null;renderMission();},500);
+  }
+
   async function startRaidRoom(room){
     const viewport=document.querySelector('#mission'),canvas=document.querySelector('#hero'),ctx=canvas.getContext('2d');
     mission={viewport,canvas,ctx,room,roomX:inventory.run?.roomPosition??.34,facing:1,animation:'idle',animationTime:0,lastTime:0,entering:false};
     keys.clear();
-    const exits=[...viewport.querySelectorAll('[data-room-exit]')];
-    for(const exit of exits)exit.addEventListener('click',()=>{
-      const state=mission;if(!state||state.entering||hubLoading||optionsOpen||mapOpen||supplies.isOpen)return;
-      const destination=exit.dataset.roomExit;
-      if(destination==='precipice'&&!payPortalEnergy())return;
-      state.entering=true;keys.clear();playEffect('teleportOut');document.querySelector('#missionFade')?.classList.add('active');
-      setTimeout(()=>{
-        if(mission!==state)return;
-        if(destination==='corridor'){
-          inventory.run.raidLayout.current='corridor-entry';inventory.run.progress=5.18;inventory.save();missionArea='corridor';mission=null;renderMission();
-        }else go('hub');
-      },650);
-    });
     await Promise.all([sororitasIdleAtlas,idleAtlas,...viewport.querySelectorAll('img')].map(image=>image.decode?.().catch(()=>{})));
     if(!mission||mission.canvas!==canvas)return;
     function tick(now){
       const state=mission;if(!state||state.canvas!==canvas||page!=='mission'||missionArea!=='room')return;
       const dt=state.lastTime?Math.min(.05,(now-state.lastTime)/1000):0;state.lastTime=now;
       const width=viewport.clientWidth,unit=viewport.clientHeight;
-      const blocked=hubLoading||optionsOpen||mapOpen||supplies.isOpen||document.querySelector('.character-dialog[open]');
+      const blocked=hubLoading||optionsOpen||mapOpen||supplies.isOpen||document.querySelector('dialog[open]');
       const direction=blocked?0:Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft'));
       if(!state.entering&&direction){state.roomX=clamp(state.roomX+direction*.24*dt,.035,.965);state.facing=direction;inventory.run.roomPosition=state.roomX;}
-      const animation=direction?'walk':'idle';if(state.animation!==animation){state.animation=animation;state.animationTime=0;}else state.animationTime+=dt;
-      for(const exit of exits){const bounds=exit.getBoundingClientRect(),portalX=bounds.left+bounds.width*.5,near=Math.abs(width*state.roomX-portalX)<unit*.2;exit.disabled=!near||state.entering;exit.classList.toggle('near',near&&!state.entering);}
-      const dpr=Math.min(devicePixelRatio||1,2);if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(unit*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(unit*dpr);canvas.style.width=width+'px';canvas.style.height=unit+'px';}
+      const animation=direction?'walk':'idle';if(state.animation!==animation){state.animation=animation;state.animationTime=animation==='walk'?.18:0;}else state.animationTime+=dt;
+      const dpr=Math.min(devicePixelRatio||1,1.5);if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(unit*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(unit*dpr);canvas.style.width=width+'px';canvas.style.height=unit+'px';}
       ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,unit);
       const isWalk=state.animation==='walk',size=Math.min(unit*.48,410),footY=unit*(846/1024),screenX=width*state.roomX;
       for(const [crewIndex,hero] of inventory.run.party.filter(h=>h.hp>0).sort((a,b)=>a.rank-b.rank).entries()){
         const sister=hero.classId==='sororitas',image=sister?(isWalk?sororitasWalkAtlas:sororitasIdleAtlas):(isWalk?walkAtlas:idleAtlas);if(!image.complete||!image.naturalWidth)continue;
-        const count=sister?(isWalk?27:121):(isWalk?24:129),fps=sister?18:(isWalk?15.2145:17.28),frame=Math.floor(state.animationTime*fps)%count,sourceX=2+(frame%8)*516,sourceY=2+Math.floor(frame/8)*516;
-        const heroX=screenX-crewIndex*unit*.16;window.ExpeditionSpeech?.position(hero.id,heroX,footY-size*.69);
+        const count=sister?(isWalk?27:121):(isWalk?24:129),fps=sister?18:(isWalk?15.2145:17.28),frame=Math.floor(state.animationTime*fps)%count,sourceX=(frame%12)*GAME_ATLAS_CELL,sourceY=Math.floor(frame/12)*GAME_ATLAS_CELL;
+        const heroX=screenX-crewIndex*unit*.16*state.facing;window.ExpeditionSpeech?.position(hero.id,heroX,footY-size*.69);
         ctx.save();ctx.translate(heroX,footY);ctx.scale(state.facing,1);
-        if(sister){const scale=isWalk?331/502:331/507,side=size*scale,anchor=isWalk?268.5:285.5,foot=isWalk?505:511;ctx.drawImage(image,sourceX,sourceY,512,512,-anchor*side/512,-foot*side/512,side,side);}
-        else if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
+        if(sister){const scale=isWalk?331/502:331/507,side=size*scale,anchor=isWalk?268.5:285.5,foot=isWalk?505:511;ctx.drawImage(image,sourceX,sourceY,GAME_ATLAS_CELL,GAME_ATLAS_CELL,-anchor*side/512,-foot*side/512,side,side);}
+        else if(isWalk)ctx.drawImage(image,sourceX,sourceY,GAME_ATLAS_CELL,GAME_ATLAS_CELL,-size/2,-size*(468/512),size,size);
         else window.drawRanger(ctx,image,'idle',state.animationTime,-size/2,-size*(468/512),size);
         ctx.restore();
       }
+      if(!state.lastMapPaint||now-state.lastMapPaint>90){updateRaidMapMarkers();state.lastMapPaint=now;}
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -887,33 +981,52 @@
     const viewport = document.querySelector('#mission');
     const canvas = document.querySelector('#hero');
     const ctx = canvas.getContext('2d');
-    mission = {viewport, canvas, ctx, encounterDone:!!inventory.run?.encounterDone, x:innerHeight * (inventory.run?.progress??.48), facing:1, camera:0, animation:'idle', animationTime:0, lastTime:0, entering:false};
+    const layout=window.BlackstoneRooms.ensureRun(inventory.run);
+    const activeCorridor=window.BlackstoneRooms.getCorridor(layout,layout.currentCorridor||layout.current)||window.BlackstoneRooms.getCorridor(layout,'corridor-entry');
+    layout.current=activeCorridor.id;layout.currentCorridor=activeCorridor.id;
+    viewport.classList.toggle('entry-corridor',activeCorridor.id===layout.startPortal?.corridor);
+    viewport.classList.toggle('final-corridor',activeCorridor.id===layout.exitPortal?.corridor);
+    if(activeCorridor.entry){layout.corridorFrom=null;layout.corridorTo=layout.entry;}
+    const sceneFrom=layout.corridorFrom,theSceneTo=layout.corridorTo||activeCorridor.to;
+    const encounterKey=`encounter:${activeCorridor.id}`,hasEncounter=activeCorridor.entry?!!layout.entryEncounter:!!activeCorridor.hasEncounter;
+    const encounterPosition=activeCorridor.entry?(layout.entryEncounterPosition??2.8):(activeCorridor.encounterPosition??2.8);
+    const startAccess=sceneFrom?window.BlackstoneRooms.roomAccess(layout,activeCorridor,sceneFrom):(activeCorridor.entry ? .34 : activeCorridor.fromAccess);
+    const destinationAccess=theSceneTo?window.BlackstoneRooms.roomAccess(layout,activeCorridor,theSceneTo):activeCorridor.toAccess;
+    const corridorDirection=(destinationAccess??5.2)>=(startAccess??.7)?1:-1;
+    const initialX=viewport.clientHeight*(inventory.run?.progress??.48);
+    const initialCamera=clamp(initialX-viewport.clientWidth*.38,0,Math.max(0,viewport.clientHeight*6-viewport.clientWidth));
+    mission = {viewport, canvas, ctx, encounterKey,hasEncounter,encounterPosition,encounterDirection:corridorDirection,encounterDone:!!inventory.run?.events?.[encounterKey],finalPortal:activeCorridor.id===layout.exitPortal?.corridor, x:initialX, facing:corridorDirection, camera:initialCamera, animation:'idle', animationTime:0, lastTime:0, entering:false};
+    const objective=document.createElement('div');objective.className='mission-objective';viewport.append(objective);
+    const updateObjective=()=>{objective.innerHTML=`<small>MISSION OBJECTIVE</small><strong>${inventory.run?.exitFound?'EXIT PORTAL LOCATED':'FIND THE EXIT PORTAL'}</strong>`;};updateObjective();
     keys.clear();
     mountPassageProps(viewport);
-    window.BlackstoneRooms?.ensureRun(inventory.run);
-    const portalExits=['left','right'].map(side=>{
-      const exit=document.createElement('button');exit.className='portal-exit';exit.dataset.portalExit=side;
-      exit.innerHTML=window.CombatUI.icon('exit');exit.title='Return to Precipice · 10 energy';exit.setAttribute('aria-label',exit.title);exit.hidden=true;
-      exit.addEventListener('click',()=>{
-        const state=mission;if(!state)return;
-        if(exit.disabled||state.entering||state.combat||hubLoading||optionsOpen||mapOpen||supplies.isOpen)return;
-        keys.clear();
-        if(side==='right'){
-          state.entering=true;playEffect('teleportOut');document.querySelector('#missionFade').classList.add('active');
-          setTimeout(()=>{if(mission!==state)return;const layout=window.BlackstoneRooms.ensureRun(inventory.run);layout.current=layout.entry;inventory.run.progress=state.x/viewport.clientHeight;inventory.save();missionArea='room';mission=null;renderMission();playEffect('teleportIn');},650);
-          return;
-        }
-        if(!payPortalEnergy())return;
-        state.entering=true;playEffect('teleportOut');document.querySelector('#missionFade').classList.add('active');
-        setTimeout(()=>{if(mission===state)go('hub');},650);
-      });viewport.append(exit);return exit;
-    });
+    const corridorControls=[];
+    const addRoomPlatform=(roomId,position)=>{
+      if(!roomId||position===null)return;
+      const room=window.BlackstoneRooms.getRoom(layout,roomId),control=document.createElement('button');
+      control.className='corridor-access';control.dataset.action='enter-room-platform';control.dataset.roomId=roomId;control.dataset.worldPosition=position;
+      control.innerHTML='<img src="corridor/props/blackstone-ferrofluid-lift.png" alt="">';
+      control.title=`Take the ferrofluid-controlled levitating platform to chamber ${room.index+1}`;control.setAttribute('aria-label',control.title);
+      viewport.append(control);corridorControls.push(control);
+    };
+    addRoomPlatform(sceneFrom,window.BlackstoneRooms.roomAccess(layout,activeCorridor,sceneFrom));
+    addRoomPlatform(theSceneTo,window.BlackstoneRooms.roomAccess(layout,activeCorridor,theSceneTo));
+    addRoomPlatform(activeCorridor.branchRoom,activeCorridor.branchAccess??null);
+    const addPortal=(kind,position)=>{
+      const portal=document.createElement('button');portal.className=`portal-exit true-portal ${kind}-portal`;portal.dataset.worldPosition=position;
+      const final=kind==='final';portal.innerHTML=window.CombatUI.icon(final?'portal':'exit');portal.title=final?'Enter the onward portal and complete the raid':'Return through the starting portal · 10 energy';portal.setAttribute('aria-label',portal.title);portal.hidden=true;
+      portal.addEventListener('click',()=>{const state=mission;if(!state||portal.disabled||state.entering||state.combat||hubLoading||optionsOpen||mapOpen||supplies.isOpen)return;keys.clear();if(!final&&!payPortalEnergy())return;state.entering=true;if(final){inventory.run.exitFound=true;inventory.run.completed=true;}playEffect('teleportOut');document.querySelector('#missionFade').classList.add('active');setTimeout(()=>{if(mission===state)go('hub');},650);});
+      viewport.append(portal);corridorControls.push(portal);
+    };
+    if(activeCorridor.id===layout.startPortal?.corridor)addPortal('start',layout.startPortal.position);
+    if(activeCorridor.id===layout.exitPortal?.corridor)addPortal('final',layout.exitPortal.position);
     const loadingState=mission;
+    const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     const backdropSources = ['corridor/repeat/blackstone_bg10_deepplanes_c_1024.png',
       'corridor/atmosphere/blackstone_bg30_fog_a_1024.png',
       'corridor/playfield/blackstone_playfield_floor_a_1024.png'];
     await Promise.all([
-      ...[walkAtlas,idleAtlas,sororitasWalkAtlas,sororitasIdleAtlas,...encounterImages,...Object.values(window.combatImages),...viewport.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})),
+      ...[walkAtlas,idleAtlas,sororitasWalkAtlas,sororitasIdleAtlas,...viewport.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})),
       ...backdropSources.map(loadHubImage)
     ]);
     if(mission!==loadingState)return;
@@ -924,46 +1037,56 @@
       state.lastTime = now;
       const unit = viewport.clientHeight;
       const width = viewport.clientWidth;
+      if(state.finalPortal&&!inventory.run.exitFound){const portalX=unit*(layout.exitPortal?.position??5.58)-state.camera;if(portalX>-unit*.2&&portalX<width+unit*.05){inventory.run.exitFound=true;inventory.save();updateObjective();}}
       const worldWidth = unit * 6;
       const maxCamera = Math.max(0, worldWidth-width);
-      const direction = (hubLoading || optionsOpen || mapOpen || supplies.isOpen || document.querySelector('.character-dialog[open]') || state.combat) ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
+      const direction = (hubLoading || optionsOpen || mapOpen || supplies.isOpen || document.querySelector('dialog[open]') || state.combat) ? 0 : Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
       if (!state.entering && direction) {
         state.x = clamp(state.x + direction * unit * .27 * dt, unit*.29, unit*5.75);
         if(!inventory.run?.events.obstacle)state.x=Math.min(state.x,unit*2.98);
         state.facing = direction;
       }
       if (!hubLoading && !state.combat && !optionsOpen && !mapOpen && !supplies.isOpen && !state.entering) updateExpedition(state,unit);
+      if(!state.lastMapPaint||now-state.lastMapPaint>90){updateRaidMapMarkers();state.lastMapPaint=now;}
       const animation = !state.entering && direction ? 'walk' : 'idle';
-      if (state.animation !== animation) { state.animation = animation; state.animationTime = 0; }
+      if (state.animation !== animation) { state.animation = animation; state.animationTime = animation === 'walk' ? .18 : 0; }
       else state.animationTime += dt;
-      const targetCamera = clamp(state.combat ? unit*2.05-width*.5 : state.x-width*.38, 0, maxCamera);
+      const battleCenter=state.x+state.encounterDirection*unit*.47;
+      const targetCamera = clamp(state.combat ? battleCenter-width*.5 : state.x-width*.38, 0, maxCamera);
       state.camera += (targetCamera-state.camera) * Math.min(1,dt*8);
-      const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(Math.abs(targetCamera-state.camera)<.05)state.camera=targetCamera;
+      const reduced=reducedMotion;
       const cameraGoal=state.combat&&!state.stressFocus&&!reduced?1.065:1;
       state.battleZoom=(state.battleZoom??1)+(cameraGoal-(state.battleZoom??1))*(1-Math.exp(-dt*4));
       const viewGoal=state.combat&&!state.stressFocus&&state.viewSide&&!reduced?(state.viewSide==='party'?1:-1):0;
       state.viewBias=(state.viewBias||0)+(viewGoal-(state.viewBias||0))*(1-Math.exp(-dt*6));
       positionPassageProps(state,unit);
-      document.querySelector('#deep').style.backgroundPosition = `${-state.camera*.10}px center`;
-      document.querySelector('#structures').style.transform = `translateX(${-state.camera*.14}px)`;
-      document.querySelector('#fog').style.backgroundPosition = `${-state.camera*.32}px center`;
-      document.querySelector('#corridorColumns').style.transform = `translateX(${-state.camera*.92}px)`;
-      document.querySelector('#midground').style.transform = `translateX(${-state.camera*.55}px)`;
-      for (const id of ['playfield','endcaps','foreground']) document.getElementById(id).style.transform = `translateX(${-state.camera}px)`;
+      const worldKey=Math.round(state.camera*10)/10;
+      if(state.worldKey!==worldKey){state.worldKey=worldKey;
+        document.querySelector('#deep').style.backgroundPosition = `${-state.camera*.10}px center`;
+        document.querySelector('#structures').style.transform = `translateX(${-state.camera*.14}px)`;
+        document.querySelector('#fog').style.backgroundPosition = `${-state.camera*.32}px center`;
+        document.querySelector('#corridorColumns').style.transform = `translateX(${-state.camera*.92}px)`;
+        document.querySelector('#midground').style.transform = `translateX(${-state.camera*.55}px)`;
+        for (const id of ['playfield','endcaps','foreground']) document.getElementById(id).style.transform = `translateX(${-state.camera}px)`;
+      }
       const consolePanel=viewport.querySelector('.combat-console');
       const consoleTop=consolePanel?consolePanel.getBoundingClientRect().top-viewport.getBoundingClientRect().top:unit;
       state.floorLift=state.combat?Math.min(0,consoleTop-30-unit*846/1024):0;
       const environmentBlur=(!reduced&&!state.stressFocus?(state.actionFocus||0):0)*3;
-      const props=document.getElementById('passageProps');if(props){props.style.filter=environmentBlur>.01?`blur(${environmentBlur}px)`:'none';props.style.transformOrigin=`${width*.5}px ${unit*846/1024}px`;props.style.scale=String(state.battleZoom+(state.actionFocus||0)*.07);props.style.translate=`${state.viewBias*unit*.028}px ${state.floorLift||0}px`;}
-      // Screen-space transforms preserve the floor anchor; depth layers travel at different rates.
-      for(const [id,depth] of [['deep',.12],['distantLightning',.16],['structures',.3],['fog',.4],['midground',.6],['corridorColumns',.92],['playfield',1],['endcaps',1],['foreground',1.4]]){
-        const layer=document.getElementById(id);
-        layer.style.transformOrigin=`${width*.5}px ${unit*846/1024}px`;
-        layer.style.filter=environmentBlur>.01?`blur(${environmentBlur}px)`:'none';
-        layer.style.scale=String(1+(state.battleZoom-1)*Math.min(depth,1)+(state.actionFocus||0)*.07*Math.min(depth,1));
-        layer.style.translate=`${state.viewBias*unit*.028*depth}px ${state.floorLift||0}px`;
+      const environmentKey=[width,unit,state.battleZoom,state.actionFocus||0,state.viewBias,state.floorLift||0,environmentBlur].map(value=>Math.round(value*100)/100).join(':');
+      if(state.environmentKey!==environmentKey){state.environmentKey=environmentKey;
+        const props=document.getElementById('passageProps');if(props){props.style.filter=environmentBlur>.01?`blur(${environmentBlur}px)`:'none';props.style.transformOrigin=`${width*.5}px ${unit*846/1024}px`;props.style.scale=String(state.battleZoom+(state.actionFocus||0)*.07);props.style.translate=`${state.viewBias*unit*.028}px ${state.floorLift||0}px`;}
+        // Screen-space transforms preserve the floor anchor; depth layers travel at different rates.
+        for(const [id,depth] of [['deep',.12],['distantLightning',.16],['structures',.3],['fog',.4],['midground',.6],['corridorColumns',.92],['playfield',1],['endcaps',1],['foreground',1.4]]){
+          const layer=document.getElementById(id);
+          layer.style.transformOrigin=`${width*.5}px ${unit*846/1024}px`;
+          layer.style.filter=environmentBlur>.01?`blur(${environmentBlur}px)`:'none';
+          layer.style.scale=String(1+(state.battleZoom-1)*Math.min(depth,1)+(state.actionFocus||0)*.07*Math.min(depth,1));
+          layer.style.translate=`${state.viewBias*unit*.028*depth}px ${state.floorLift||0}px`;
+        }
       }
-      const dpr = Math.min(devicePixelRatio || 1,2);
+      const dpr = Math.min(devicePixelRatio || 1,1.5);
       if (canvas.width !== Math.round(width*dpr) || canvas.height !== Math.round(unit*dpr)) {
         canvas.width = Math.round(width*dpr);
         canvas.height = Math.round(unit*dpr);
@@ -980,38 +1103,39 @@
       if (!state.combat) {
         for(const [crewIndex,hero] of inventory.run.party.filter(h=>h.hp>0).sort((a,b)=>a.rank-b.rank).entries()){
         const sister=hero.classId==='sororitas',image=sister?(isWalk?sororitasWalkAtlas:sororitasIdleAtlas):(isWalk?walkAtlas:idleAtlas);if(!image.complete||!image.naturalWidth)continue;
-        const count=sister?(isWalk?27:121):(isWalk?24:129),fps=sister?18:(isWalk?15.2145:17.28),frame=Math.floor(state.animationTime*fps)%count,sourceX=2+(frame%8)*516,sourceY=2+Math.floor(frame/8)*516;
-        const heroScreenX=screenX-crewIndex*unit*.16;
+        const count=sister?(isWalk?27:121):(isWalk?24:129),fps=sister?18:(isWalk?15.2145:17.28),frame=Math.floor(state.animationTime*fps)%count,sourceX=(frame%12)*GAME_ATLAS_CELL,sourceY=Math.floor(frame/12)*GAME_ATLAS_CELL;
+        const heroScreenX=screenX-crewIndex*unit*.16*state.facing;
         window.ExpeditionSpeech?.position(hero.id,width*.5+(heroScreenX-width*.5)*state.battleZoom,footY-size*.69*state.battleZoom);
         ctx.save();
         ctx.translate(width*.5+(heroScreenX-width*.5)*state.battleZoom,footY);
         ctx.scale(state.battleZoom,state.battleZoom);
         ctx.scale(state.facing,1);
-        if(sister){const scale=isWalk?331/502:331/507,side=size*scale,anchor=isWalk?268.5:285.5,foot=isWalk?505:511;ctx.drawImage(image,sourceX,sourceY,512,512,-anchor*side/512,-foot*side/512,side,side);}
-        else if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
+        if(sister){const scale=isWalk?331/502:331/507,side=size*scale,anchor=isWalk?268.5:285.5,foot=isWalk?505:511;ctx.drawImage(image,sourceX,sourceY,GAME_ATLAS_CELL,GAME_ATLAS_CELL,-anchor*side/512,-foot*side/512,side,side);}
+        else if(isWalk)ctx.drawImage(image,sourceX,sourceY,GAME_ATLAS_CELL,GAME_ATLAS_CELL,-size/2,-size*(468/512),size,size);
         else window.drawRanger(ctx,image,'idle',state.animationTime,-size/2,-size*(468/512),size);
         ctx.restore();
         }
       }
-      if (!hubLoading && !mapOpen && !supplies.isOpen && !inventory.run?.defeated && !state.combat && !state.encounterDone && state.x >= unit*1.65) {
+      const encounterReached=state.encounterDirection>0?state.x/unit>=state.encounterPosition:state.x/unit<=state.encounterPosition;
+      if (!hubLoading && !mapOpen && !supplies.isOpen && !inventory.run?.defeated && !state.combat && state.hasEncounter && !state.encounterDone && encounterReached) {
         state.combat = true;
         keys.clear();
         setMusic();
         state.stopCombat = window.startBlackstoneBattle({
           party:inventory.run.party,
-          snapshot:inventory.run.battle,
-          onCheckpoint:snapshot=>{if(inventory.run){inventory.run.battle=snapshot;inventory.save();}},
-          getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,size:Math.min(viewport.clientHeight*.48,410),zoom:state.battleZoom,bias:state.viewBias,center:viewport.clientWidth*.5,width:viewport.clientWidth,footY:viewport.clientHeight*846/1024+(state.floorLift||0)}),
+          snapshot:inventory.run.battles?.[state.encounterKey],
+          onCheckpoint:snapshot=>{if(inventory.run){inventory.run.battles||={};inventory.run.battles[state.encounterKey]=snapshot;inventory.save();}},
+          getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,encounterX:state.x,travelDirection:state.encounterDirection,size:Math.min(viewport.clientHeight*.48,410),zoom:state.battleZoom,bias:state.viewBias,center:viewport.clientWidth*.5,width:viewport.clientWidth,footY:viewport.clientHeight*846/1024+(state.floorLift||0)}),
           onCameraSide:side=>{state.viewSide=side;},
           onStressFocus:id=>{state.stressFocus=id;},
           onBreakdown:unit=>playEffect(unit?.classId==='sororitas'?'sororitasStress':'psychologicalBreakdown'),
           onActionFocus:amount=>{state.actionFocus=amount;},
           onOptions:openOptions,
-          onFlee:fleeExpedition,
-          onInventory:refresh=>openInventory(true,refresh),
+          onFlee:requestFleeExpedition,
+          onInventory:refresh=>openInventory(true,()=>refresh(inventory.run?.party||[])),
           onPartyChange:party=>{if(inventory.run){inventory.run.party=party;inventory.recordDeaths(party);syncCrew();if(party.every(u=>u.hp<=0))inventory.run.defeated=true;inventory.save();updateResourceHUD();}},
           onDefeat:()=>{state.defeated=true;inventory.run.defeated=true;inventory.save();setMusic();},
-          onVictory:()=>{state.victoryCue=true;inventory.run.encounterDone=true;delete inventory.run.battle;inventory.queueLoot([{id:'credits',qty:650},{id:'salvage',qty:4}]);setMusic();},
+          onVictory:()=>{state.victoryCue=true;inventory.run.events[state.encounterKey]=true;if(inventory.run.battles)delete inventory.run.battles[state.encounterKey];inventory.queueLoot([{id:'credits',qty:650},{id:'salvage',qty:4}]);setMusic();},
           onAttack:(unit,skill)=>{
             if(unit.classId==='sororitas'&&skill==='flamer')playEffect('sororitasFlamer');
             else if(unit.classId==='sororitas'&&skill==='pray')playEffect('sororitasPray');
@@ -1028,16 +1152,16 @@
           onFinish:result => {
             state.combat = false; state.animationTime = 0; state.encounterDone = true; keys.clear(); setMusic();
             if (result === 'defeat') go('hub');
-            else { inventory.run.encounterDone=true;inventory.save();updateResourceHUD();showLoot(); }
+            else { inventory.run.events[state.encounterKey]=true;inventory.save();updateResourceHUD();showLoot(); }
           }
         });
       }
-      portalExits.forEach((exit,i)=>{
-        const near=i===0?state.x<unit*.95:state.x>unit*5.05;
-        exit.hidden=!near||state.combat||state.entering||hubLoading;
-        exit.disabled=optionsOpen||mapOpen||supplies.isOpen;
-        exit.style.left=clamp((i===0?unit*.34:unit*5.68)-state.camera,36,width-36)+'px';
-        exit.style.top=(unit*.59)+'px';
+      corridorControls.forEach(control=>{
+        const position=Number(control.dataset.worldPosition),worldX=unit*position-state.camera,isPlatform=control.classList.contains('corridor-access');
+        control.hidden=state.combat||state.entering||hubLoading;
+        control.disabled=optionsOpen||mapOpen||supplies.isOpen;
+        control.style.left=(isPlatform?worldX:clamp(worldX,44,width-44))+'px';
+        control.style.top=(unit*(isPlatform ? .826 : .59))+'px';
       });
       requestAnimationFrame(tick);
     }

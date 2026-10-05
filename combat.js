@@ -144,16 +144,19 @@ const rangerHitTiming = {
   return Math.min(this.frames-1,Math.floor(source*this.frames));
  }
 };
+const GAME_ATLAS_CELL=384,GAME_ATLAS_COLUMNS=12;
+const atlasPoint=frame=>[(frame%GAME_ATLAS_COLUMNS)*GAME_ATLAS_CELL,Math.floor(frame/GAME_ATLAS_COLUMNS)*GAME_ATLAS_CELL];
 window.drawRanger = (ctx,image,kind,time,x,y,size) => {
  ctx.save();ctx.translate(x,y);const unit=size/512;ctx.scale(unit,unit);
- if(kind==='confidence'){const frame=Math.min(40,Math.floor(time*12));ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,0,0,512,512);}
- else if(kind==='stress'){const frame=Math.min(40,Math.floor(time*12)),scale=348/381,side=512*scale;ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,(512-side)/2-3/unit,470-445*scale,side,side);}
- else if(kind==='blade'){const frame=Math.min(39,Math.floor(time*24)),scale=348/354,side=512*scale;ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,(512-side)/2,470-440*scale,side,side);}
- else if(kind==='attack'){const frame=Math.min(76,Math.floor(time*24));const scale=(387*(348/388))/350,side=512*scale;ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,(512-side)/2,470-431*scale,side,side);}
+ if(kind==='confidence'){const frame=Math.min(40,Math.floor(time*12)),[sx,sy]=atlasPoint(frame);ctx.drawImage(image,sx,sy,GAME_ATLAS_CELL,GAME_ATLAS_CELL,0,0,512,512);}
+ else if(kind==='stress'){const frame=Math.min(40,Math.floor(time*12)),[sx,sy]=atlasPoint(frame),scale=348/381,side=512*scale;ctx.drawImage(image,sx,sy,GAME_ATLAS_CELL,GAME_ATLAS_CELL,(512-side)/2-3/unit,470-445*scale,side,side);}
+ else if(kind==='blade'){const frame=Math.min(39,Math.floor(time*24)),[sx,sy]=atlasPoint(frame),scale=348/354,side=512*scale;ctx.drawImage(image,sx,sy,GAME_ATLAS_CELL,GAME_ATLAS_CELL,(512-side)/2,470-440*scale,side,side);}
+ else if(kind==='attack'){const frame=Math.min(76,Math.floor(time*24)),[sx,sy]=atlasPoint(frame);const scale=(387*(348/388))/350,side=512*scale;ctx.drawImage(image,sx,sy,GAME_ATLAS_CELL,GAME_ATLAS_CELL,(512-side)/2,470-431*scale,side,side);}
  else {const hit=kind==='hit';const frame=hit?rangerHitTiming.frameAt(time):Math.floor(time*17.28)%129;
  const scale=hit?.99:348/388,side=512*scale;
  const dx=(512-side)/2,dy=hit?3+467*(1-scale):470-450*scale;
- ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,dx,dy,side,side);}
+ const [sx,sy]=atlasPoint(frame);
+ ctx.drawImage(image,sx,sy,GAME_ATLAS_CELL,GAME_ATLAS_CELL,dx,dy,side,side);}
  ctx.restore();
 };
 const sororitasClips={
@@ -168,13 +171,16 @@ const sororitasClips={
 window.drawSororitas=(ctx,image,kind,time,x,y,size)=>{
  const clip=sororitasClips[kind]||sororitasClips.idle,loop=kind==='idle',frame=loop?Math.floor(time*clip.fps)%clip.frames:Math.min(clip.frames-1,Math.floor(time*clip.fps));
  const scale=clip.scale,side=512*scale,dx=256-clip.anchor*scale,dy=470-clip.foot*scale;
- ctx.save();ctx.translate(x,y);ctx.scale(size/512,size/512);ctx.drawImage(image,2+frame%8*516,2+Math.floor(frame/8)*516,512,512,dx,dy,side,side);ctx.restore();
+ const [sx,sy]=atlasPoint(frame);
+ ctx.save();ctx.translate(x,y);ctx.scale(size/512,size/512);ctx.drawImage(image,sx,sy,GAME_ATLAS_CELL,GAME_ATLAS_CELL,dx,dy,side,side);ctx.restore();
 };
 window.combatImages={};
-for(const [id,path] of Object.entries({ranger:'ranger-idle',attack:'ranger-shoot',blade:'ranger-dagger',hit:'ranger-hit',stress:'ranger-low-morale2',confidence:'ranger-confidence',sororitas:'sororitas-idle','sororitas-attack':'sororitas-shoot','sororitas-melee':'sororitas-melee','sororitas-pray':'sororitas-pray','sororitas-hit':'sororitas-hit','sororitas-stress':'sororitas-stress','sororitas-confidence':'sororitas-confidence',raider:'hormagaunt-melee',psyker:'zoanthrope-psyker',gunner:'termagant-ranged'})){const image=new Image();image.src='sprites/'+path+'.webp';window.combatImages[id]=image;}
+for(const [id,path] of Object.entries({ranger:'ranger-idle-game.webp',attack:'ranger-shoot-game.webp',blade:'ranger-dagger-game.webp',hit:'ranger-hit-game.webp',stress:'ranger-low-morale2-game.webp',confidence:'ranger-confidence-game.webp',sororitas:'sororitas-idle-game.webp','sororitas-attack':'sororitas-shoot-game.webp','sororitas-melee':'sororitas-melee-game.webp','sororitas-pray':'sororitas-pray-game.webp','sororitas-hit':'sororitas-hit-game.webp','sororitas-stress':'sororitas-stress-game.webp','sororitas-confidence':'sororitas-confidence-game.webp',raider:'hormagaunt-melee.webp',psyker:'zoanthrope-psyker.webp',gunner:'termagant-ranged.webp'})){const image=new Image();image.decoding='async';image.src='sprites/'+path;window.combatImages[id]=image;}
+let combatWarmup;
+window.warmCombatImages=()=>combatWarmup ||= Object.values(window.combatImages).reduce((promise,image)=>promise.then(()=>image.decode?.().catch(()=>{})),Promise.resolve());
 window.BlackstoneBattle=Battle;
 window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,getLayout,onHit,onAttack,onDefeat,onVictory,onInventory,onPartyChange,onFlee,onCameraSide,onStressFocus,onActionFocus,onBreakdown})=>{
- const battle=new Battle(party,Math.random,snapshot);let skills=skillsFor(battle.living('party')[0]),selected=skills[0].id,timer,closed=false,attackId=null,attackTargetId=null,attackTargetIds=[],attackSkill=null,pairUntil=0,attackUntil=0,attackStarted=0,busyUntil=performance.now()+1200,victoryShown=false,defeatAnnounced=false;const camera=new window.CombatCamera();const appearedAt=performance.now();const deaths=new Map();const reactions=new Map();const stressReactions=new Map();const characterEffects=new window.CharacterEffects();const floatingText=new Map();const idleStarts=new Map();const previousPoses=new Map();let focusedId=null;const focusScales=new Map();const rankMotion=new Map();let previousDrawTime=performance.now();
+ const battle=new Battle(party,Math.random,snapshot);let skills=skillsFor(battle.living('party')[0]),selected=skills[0].id,timer,closed=false,preparingAttack=false,attackId=null,attackTargetId=null,attackTargetIds=[],attackSkill=null,pairUntil=0,attackUntil=0,attackStarted=0,busyUntil=performance.now()+1200,victoryShown=false,defeatAnnounced=false;const camera=new window.CombatCamera();const appearedAt=performance.now();const deaths=new Map();const reactions=new Map();const stressReactions=new Map();const characterEffects=new window.CharacterEffects();const floatingText=new Map();const idleStarts=new Map();const previousPoses=new Map();let focusedId=null;const focusScales=new Map();const rankMotion=new Map();let previousDrawTime=performance.now();const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
  onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());
  let inspected='shot',lastTurnNotice='',turnNotice=null,turnNoticeTimer;
  const images=window.combatImages;
@@ -193,16 +199,26 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
  function updateInfo(){
   skills=skillsFor(battle.active?.side==='party'?battle.active:battle.living('party')[0]);if(!skills.some(s=>s.id===selected))selected=skills[0].id;
   const panel=root.querySelector('[data-info-content]');if(!panel)return;
-  const player=!battle.result&&performance.now()>=busyUntil&&battle.active?.side==='party';
+  const player=!preparingAttack&&!battle.result&&performance.now()>=busyUntil&&battle.active?.side==='party';
   panel.innerHTML=window.CombatUI.info(inspected,skills,battle.active,player);
  }
- function resolve(action,skill,targetId){
-  if(closed||performance.now()<busyUntil)return;
+ function imageKeyForPose(unit,skill,hit=false){
+  if(unit.side==='enemy')return unit.id;
+  if(hit)return unit.classId==='sororitas'?'sororitas-hit':'hit';
+  if(unit.classId==='sororitas')return skill==='maul'?'sororitas-melee':skill==='pray'?'sororitas-pray':'sororitas-attack';
+  return skill==='blade'?'blade':'attack';
+ }
+ async function resolve(action,skill,targetId){
+  if(closed||preparingAttack||performance.now()<busyUntil)return;
   const attacker=battle.active;
   const shooting=attacker.side==='party'&&['shot','aim','flamer'].includes(skill);
   const enemyPlan=attacker.side==='enemy'?battle.planEnemy():null;if(enemyPlan){action=()=>battle.enemy(enemyPlan);skill=enemyPlan.id;}
-  const started=performance.now();
   const selectedSkill=skillsFor(attacker).find(s=>s.id===skill),targetIds=enemyPlan?enemyPlan.targets:(selectedSkill?.area?battle.previewTargets(selectedSkill,targetId).map(u=>u.id):targetId?[targetId]:[]);
+  preparingAttack=true;render();
+  const decodeKeys=new Set([imageKeyForPose(attacker,skill),...targetIds.map(id=>battle.units.find(unit=>unit.id===id)).filter(Boolean).map(unit=>imageKeyForPose(unit,skill,true))]);
+  await Promise.all([...decodeKeys].map(key=>images[key]?.decode?.().catch(()=>{})));preparingAttack=false;
+  if(closed)return;
+  const started=performance.now();
   attackId=attacker.id;attackTargetId=targetIds[0]||null;attackTargetIds=[...targetIds];attackSkill=skill;attackStarted=started;
   const partyDuration=skill==='blade'?40/24*1000:skill==='flamer'?37/12*1000:['maul','pray'].includes(skill)?73/24*1000:77/24*1000;
   attackUntil=started+(attacker.side==='party'?partyDuration:700);
@@ -248,8 +264,9 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
  function chooseSkill(id){
   skills=skillsFor(battle.active);
   const active=battle.active,skill=skills.find(s=>s.id===id);
-  if(!skill||performance.now()<busyUntil||battle.result||active?.side!=='party'||!skill.from.includes(active.rank))return false;
+  if(!skill||preparingAttack||performance.now()<busyUntil||battle.result||active?.side!=='party'||!skill.from.includes(active.rank))return false;
   selected=id;inspected=id;
+  images[imageKeyForPose(active,id)]?.decode?.().catch(()=>{});
   if(id==='step'){battle.act(id);busyUntil=performance.now()+450;onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());}
   else if(id==='pray'){resolve(()=>battle.act(id),id);return true;}
   render();return true;
@@ -273,7 +290,7 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
    timer=setTimeout(()=>{closed=true;removeEventListener('keydown',onHotkey);camera.clear();onActionFocus?.(0);root.remove();onFinish('victory');},1450);
    return;
   }
-  const active=battle.active;skills=skillsFor(active?.side==='party'?active:battle.living('party')[0]);if(!skills.some(s=>s.id===selected))selected=skills[0].id;const busy=performance.now()<busyUntil;const player=!busy&&!battle.result&&active.side==='party';const skill=skills.find(s=>s.id===selected);
+  const active=battle.active;skills=skillsFor(active?.side==='party'?active:battle.living('party')[0]);if(!skills.some(s=>s.id===selected))selected=skills[0].id;const busy=preparingAttack||performance.now()<busyUntil;const player=!busy&&!battle.result&&active.side==='party';const skill=skills.find(s=>s.id===selected);
   const ranks=side=>(side==='party'?[4,3,2,1]:[1,2,3,4]).map(rank=>{
    const u=battle.units.find(u=>u.side===side&&u.rank===rank);
    const valid=player&&skill.from.includes(active.rank)&&battle.targets(skill).includes(u);
@@ -297,7 +314,13 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
   else if(b.dataset.target){resolve(()=>battle.act(selected,b.dataset.target),selected,b.dataset.target);}
   else if(b.dataset.cmd==='flee')onFlee?.();
   else if(b.dataset.cmd==='options')onOptions();
-  else if(b.dataset.cmd==='inventory')onInventory?.(()=>{onCheckpoint?.(battle.snapshot());render();});
+  else if(b.dataset.cmd==='inventory')onInventory?.(updatedParty=>{
+   if(Array.isArray(updatedParty))for(const unit of battle.units.filter(u=>u.side==='party')){
+    const source=updatedParty.find(hero=>hero.id===unit.id);if(!source)continue;
+    unit.hp=source.hp;unit.bleed=source.bleed?{...source.bleed}:null;unit.poison=source.poison||0;
+   }
+   onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());render();
+  });
   else if(b.dataset.cmd==='finish'){closed=true;removeEventListener('keydown',onHotkey);clearTimeout(timer);hideTurnNotice();camera.clear();onActionFocus?.(0);root.remove();onFinish(battle.result);}
   else if(['forward','back','wait'].includes(b.dataset.cmd)){
    const c=b.dataset.cmd;inspected=c;
@@ -308,7 +331,7 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
  function drawFlamerEffect(now){
   let canvas=root.querySelector('.combat-flamer-fx');
   if(!canvas){canvas=document.createElement('canvas');canvas.className='combat-flamer-fx';canvas.setAttribute('aria-hidden','true');root.append(canvas);}
-  const bounds=root.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1),width=Math.max(1,Math.round(bounds.width*dpr)),height=Math.max(1,Math.round(bounds.height*dpr));
+  const bounds=root.getBoundingClientRect(),dpr=Math.min(1.25,devicePixelRatio||1),width=Math.max(1,Math.round(bounds.width*dpr)),height=Math.max(1,Math.round(bounds.height*dpr));
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   const fx=canvas.getContext('2d');fx.setTransform(dpr,0,0,dpr,0,0);fx.clearRect(0,0,bounds.width,bounds.height);
   if(attackSkill!=='flamer'||!attackId||now>=attackUntil)return;
@@ -317,9 +340,11 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
   const from=attacker.getBoundingClientRect(),targetBoxes=targets.map(entry=>entry.getBoundingClientRect()),direction=targetBoxes[0].left>from.left?1:-1;
   const startX=(direction>0?from.left+from.width*.70:from.right-from.width*.70)-bounds.left,startY=from.top-bounds.top+from.height*.405;
   const farEdge=direction>0?Math.max(...targetBoxes.map(box=>box.right-bounds.left)):Math.min(...targetBoxes.map(box=>box.left-bounds.left));
-  const distance=Math.abs(farEdge-startX)+Math.max(...targetBoxes.map(box=>box.width))*.18,length=Math.max(210,Math.min(bounds.width*.9,distance)),angle=direction>0?0:Math.PI;
+  const distance=Math.abs(farEdge-startX)+Math.max(...targetBoxes.map(box=>box.width))*.18,length=Math.max(210,Math.min(bounds.width*.9,distance));
   const rise=Math.min(1,(age-.667)/.12),fall=Math.min(1,(2.167-age)/.18),alpha=Math.max(0,Math.min(rise,fall)),pulse=.93+.07*Math.sin(age*39),seed=Math.floor(age*24);
-  fx.save();fx.translate(startX,startY);fx.rotate(angle);
+  // Mirror only along X. A 180-degree rotation also inverted the flame's arc,
+  // making the right-side attack bend down instead of retaining its upward lift.
+  fx.save();fx.translate(startX,startY);fx.scale(direction,1);
   const tip=length*(.97+.022*Math.sin(age*31)),half=(82+12*Math.sin(age*27))*pulse,arc=36+Math.min(26,length*.045);
   const centre=t=>-arc*Math.sin(Math.PI*t)+18*t*t;
   const widthAt=(t,scale=1)=>scale*(8+half*Math.pow(Math.sin(Math.PI*Math.min(1,t*1.04)),.72)*(1-.18*t));
@@ -365,7 +390,7 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
    }
   }
   for(const [id,s] of stressReactions)if(now>=s.end&&!s.completed){s.completed=true;morale.complete(battle.units.find(u=>u.id===id));onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());}
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced=reducedMotion;
   const shot=camera.sample(now,{reduced,suspended:!!focusId});onActionFocus?.(shot.amount);
   const displayUnits=battle.units.map(u=>{
    let motion=rankMotion.get(u.id);
@@ -375,8 +400,9 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
    motion.value=motion.from+(motion.rank-motion.from)*ease;
    return {...u,visualRank:motion.value};
   });
+  const frameLayout=getLayout?.(),rootBounds=root.getBoundingClientRect(),panel=root.querySelector('.combat-console'),panelTop=panel?panel.getBoundingClientRect().top-rootBounds.top:Infinity,drawnPositions=new Map();
   root.querySelectorAll('.combat-sprite').forEach(canvas=>{
-   const u=displayUnits.find(u=>u.id===canvas.dataset.unit);if(getLayout){const l=getLayout(),button=canvas.parentElement;const rawX=(u.side==='party'?l.heroX+(3-u.visualRank)*l.unit*.16:l.unit*(2.28+(u.visualRank-1)*.18))-l.camera;const zoom=l.zoom||1,bias=l.bias||0,near=(u.side==='party'?1:-1)*bias;const center=l.center??innerWidth/2;const baseX=center+(rawX-center)*zoom+bias*l.unit*.018;const baseSize=(u.side==='party'?l.size:l.size*.94)*zoom*(1+near*.045);const pose=camera.pose(u,displayUnits,l,shot,baseX,baseSize);const x=pose.x;const panelTop=root.querySelector('.combat-console')?.getBoundingClientRect().top-root.getBoundingClientRect().top;const foot=Math.min(l.footY??l.unit*846/1024,Number.isFinite(panelTop)?panelTop-30:Infinity)+near*l.unit*.009;const paired=!!shot.action&&pose.participant;const focusGoal=focusId&&!reduced?(focusId===u.id?1.22:1):1;const previousScale=focusScales.get(u.id)||1;const focusScale=Math.abs(focusGoal-previousScale)<.0001?focusGoal:previousScale+(focusGoal-previousScale)*(1-Math.exp(-focusDt*18));focusScales.set(u.id,focusScale);const size=focusScale*baseSize*pose.scale;canvas.style.filter=`blur(${pose.blur}px) brightness(${pose.brightness})`;
+   const u=displayUnits.find(u=>u.id===canvas.dataset.unit);if(frameLayout){const l=frameLayout,button=canvas.parentElement,direction=l.travelDirection<0?-1:1;const encounterX=Number.isFinite(l.encounterX)?l.encounterX:l.heroX,width=l.width||innerWidth;const battleCenter=encounterX+direction*l.unit*.47,gap=Math.min(l.unit*.26,width*.10),spacing=Math.min(l.unit*.16,width*.055),side=u.side==='party'?-1:1;const rawX=battleCenter+direction*side*(gap+(u.visualRank-1)*spacing)-l.camera;const zoom=l.zoom||1,bias=l.bias||0,near=(u.side==='party'?direction:-direction)*bias;const center=l.center??innerWidth/2;const baseX=center+(rawX-center)*zoom+bias*direction*l.unit*.018;const baseSize=(u.side==='party'?l.size:l.size*.94)*zoom*(1+near*.045);const pose=camera.pose(u,displayUnits,l,shot,baseX,baseSize);const x=pose.x;const foot=Math.min(l.footY??l.unit*846/1024,Number.isFinite(panelTop)?panelTop-30:Infinity)+near*l.unit*.009;const paired=!!shot.action&&pose.participant;const focusGoal=focusId&&!reduced?(focusId===u.id?1.22:1):1;const previousScale=focusScales.get(u.id)||1;const focusScale=Math.abs(focusGoal-previousScale)<.0001?focusGoal:previousScale+(focusGoal-previousScale)*(1-Math.exp(-focusDt*18));focusScales.set(u.id,focusScale);const size=focusScale*baseSize*pose.scale,filter=`blur(${pose.blur}px) brightness(${pose.brightness})`;if(canvas.style.filter!==filter)canvas.style.filter=filter;drawnPositions.set(u.id,{x,foot,size});
    button.style.zIndex=focusId===u.id?'30':paired?(u.id===attackId?'22':'21'):'';button.classList.toggle('turn-owner',!battle.result&&u.id===(now<busyUntil&&attackId?attackId:battle.active?.id));button.classList.toggle('attack-target',paired&&shot.action.targetIds.includes(u.id));button.dataset.emphasis=paired?'attack':'none';canvas.style.transition='none';Object.assign(button.style,{position:'absolute',left:(x-65)+'px',top:(foot-60)+'px',width:'130px',height:'84px','--sprite-size':size+'px'});
    Object.assign(canvas.style,{width:size+'px',height:size+'px',left:((130-size)/2)+'px',top:(60-size*468/512)+'px',bottom:'auto'});const meter=button.querySelector('meter');if(meter)meter.style.top=(48-size*468/512+size*(u.id!=='gunner'?.14:.07))+'px';}
 const death=deaths.get(u.id);if(death!==undefined&&now-death>=1200){canvas.parentElement.style.visibility='hidden';return;}
@@ -391,6 +417,7 @@ const reaction=reactions.get(u.id);const hurt=reaction&&now>=reaction.start&&now
    const birth=u.side==='enemy'?Math.min(1,Math.max(0,(now-appearedAt-200)/1000)):1;
    const dying=death!==undefined?Math.max(0,now-death):0;
    ctx.filter=`brightness(${death!==undefined?Math.max(0,1-dying/600):birth})`;
+   if(frameLayout?.travelDirection<0){ctx.translate(512,0);ctx.scale(-1,1);}
    canvas.parentElement.classList.toggle('dying',death!==undefined);
    ctx.globalAlpha=hurt&&now-reaction.start<450&&Math.floor((now-reaction.start)/100)%2===0?.5:u.hp>0||hurt?1:.35;
    if(death!==undefined)ctx.globalAlpha=Math.max(0,1-Math.max(0,dying-600)/600);
@@ -406,7 +433,7 @@ const reaction=reactions.get(u.id);const hurt=reaction&&now>=reaction.start&&now
    }
    else window.drawTyranid(ctx,image,death!==undefined||hurt?'hit':attacking,0,0,512,483);
    ctx.restore();
-   if(u.side==='party'){const box=canvas.getBoundingClientRect(),base=root.getBoundingClientRect();window.ExpeditionSpeech?.position(u.id,box.left-base.left+box.width*.5,box.top-base.top+box.height*.23);}
+   if(u.side==='party'){const p=drawnPositions.get(u.id);if(p)window.ExpeditionSpeech?.position(u.id,p.x,p.foot-p.size*.684);}
 
   });
   drawFlamerEffect(now);
@@ -415,8 +442,8 @@ const reaction=reactions.get(u.id);const hurt=reaction&&now>=reaction.start&&now
    if(age<0||age>1100){label?.remove();continue;}
    const canvas=root.querySelector(`[data-unit="${reaction.target||id}"]`);if(!canvas)continue;
    if(!label){label=document.createElement('span');label.className='damage-number'+(reaction.missed?' missed-number':'')+(reaction.morale?' morale-number':'')+(reaction.positive?' positive-number':'')+(reaction.bleed?' bleed-number':'')+(reaction.status?' status-number':'');label.dataset.damage=id;if(reaction.missed||reaction.critical){const img=document.createElement('img');img.src='branding/'+(reaction.missed?'miss':'crit')+'.png';img.alt=reaction.missed?'MISS':'CRIT';label.append(img);}if(!reaction.missed)label.append(document.createTextNode(reaction.text));label.setAttribute('aria-label',reaction.missed?'Missed':reaction.text);root.append(label);}
-   const box=canvas.getBoundingClientRect(),base=root.getBoundingClientRect();
-   label.style.left=(box.left-base.left+box.width*.5)+'px';label.style.top=(box.top-base.top+box.height*.08-24-age*.045-(reaction.morale?34:0))+'px';label.style.opacity=String(Math.min(1,(1100-age)/350));
+   const p=drawnPositions.get(reaction.target||id);if(!p)continue;
+   label.style.left=p.x+'px';label.style.top=(p.foot-p.size*(468/512-.08)-24-age*.045-(reaction.morale?34:0))+'px';label.style.opacity=String(Math.min(1,(1100-age)/350));
   }
   requestAnimationFrame(draw);
  }

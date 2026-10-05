@@ -8,6 +8,9 @@
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const sororitasIcons={flamer:[0,0],maul:[1,0],pray:[0,1],step:[1,1]};
   function icon(id,label=''){
+    if(id==='room-exit')return `<svg class="hud-line-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M8 34V7h18v27M13 34V12h9v22M25 20h10m-5-5 5 5-5 5"/></svg>`;
+    if(id==='camp')return `<svg class="hud-line-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M7 31 20 8l13 23M12 31h16M10 26h20M20 8v23M29 8c4 2 5 5 3 9-4-1-6-4-3-9Z"/></svg>`;
+    if(id==='portal')return `<svg class="hud-line-icon portal-glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 34 20 20 37 6 20 20 3Zm0 8-7 9 7 9 7-9-7-9Z"/><circle cx="20" cy="20" r="4"/></svg>`;
     const sister=id==='step'&&label!=='Guarded Advance'?null:sororitasIcons[id];
     if(sister)return `<span class="sororitas-skill-icon" aria-hidden="true" style="background-position:${sister[0]*100}% ${sister[1]*100}%"></span>`;
     const i=Math.max(0,icons.indexOf(id));return `<span class="drawn-icon" aria-hidden="true" style="background-position:${(i%4)*100/3}% ${Math.floor(i/4)*100/3}%"></span>`;

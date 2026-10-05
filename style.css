@@ -29,7 +29,7 @@ body{overflow-x:hidden}
 .mission .world{position:absolute;left:0;top:0;width:600vh;height:100vh;will-change:transform}
 .mission #structures{z-index:20}.mission #fog{position:absolute;inset:0;z-index:30;background:url('corridor/atmosphere/blackstone_bg30_fog_a_1024.png') repeat-x center/auto 100%;will-change:background-position}
 .mission #midground{z-index:40}.mission #playfield{z-index:60;background:url('corridor/playfield/blackstone_playfield_floor_a_1024.png') repeat-x left bottom/100vh 100vh}
-.mission #endcaps{z-index:70}.mission #hero{position:absolute;inset:0;z-index:80;pointer-events:none}.mission #foreground{z-index:90;pointer-events:none;overflow:hidden}
+.mission #endcaps{z-index:65;pointer-events:none}.mission #hero{position:absolute;inset:0;z-index:80;pointer-events:none}.mission #foreground{z-index:90;pointer-events:none;overflow:hidden}
 .mission .module{position:absolute;height:auto;object-fit:contain}.mission .span{left:45vh;top:5%;width:92vh;filter:brightness(.62) contrast(.92)}.mission .ribs{left:190vh;top:7%;width:52vh;filter:brightness(.55) contrast(.9)}.mission .pylon{left:335vh;top:8%;width:42vh;filter:brightness(.76) contrast(.96)}.mission .aperture{left:455vh;top:55%;width:30vh;filter:brightness(.68) contrast(.94)}
 .mission .buttress{left:105vh;top:3%;width:52vh;filter:brightness(.82)}.mission .overhang{left:265vh;top:-2%;width:92vh;filter:brightness(.78)}.mission .wallnode{left:420vh;bottom:0;width:65vh;filter:brightness(.86)}
 .mission .cap{position:absolute;top:0;width:100vh;height:100vh;object-fit:contain}.mission .cap-left{left:0}.mission .cap-right{left:500vh}
@@ -162,6 +162,9 @@ body{overflow-x:hidden}
 .combat-unit.targetable:hover::after,.combat-unit.targetable:focus-visible::after,.combat-unit.attack-target::after{opacity:1;background:linear-gradient(90deg,#793b27,#f99874,#793b27)}
 
 .portal-exit{position:absolute;z-index:75;width:54px;height:54px;transform:translate(-50%,-50%);display:grid;place-items:center;background:#0b211fea;border:1px solid #d1b373;color:#f1d99f;box-shadow:0 0 18px #56bfc34d;cursor:pointer}.portal-exit[hidden]{display:none}.portal-exit svg{width:36px;height:36px}.portal-exit:hover{background:#21443c;border-color:#ffe3a0;box-shadow:0 0 24px #56bfc38a}.portal-exit:focus-visible{outline:2px solid #ffe3a0;outline-offset:3px}
+.hud-line-icon{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:square;stroke-linejoin:miter}.hud-line-icon.portal-glyph{fill:#153b3d;stroke:#76e7e6}
+.portal-exit.true-portal{z-index:86;width:68px;height:76px;grid-template-rows:44px 14px;align-content:center;background:#061313e8;border:1px solid #55adb0;clip-path:polygon(50% 0,100% 24%,88% 80%,50% 100%,12% 80%,0 24%);box-shadow:inset 0 0 22px #2bd6de2e,0 0 22px #28d5dd42}.portal-exit.true-portal .drawn-icon,.portal-exit.true-portal .hud-line-icon{width:40px;height:40px}.portal-exit.true-portal span{font:8px Georgia,serif;letter-spacing:.12em;color:#d8c08f}.portal-exit.final-portal{border-color:#8ceff0;box-shadow:inset 0 0 26px #42f5f54d,0 0 30px #2bdce070}
+.corridor-access{position:absolute;z-index:58;width:62vh;height:45vh;padding:0;translate:-50% -100%;border:0;background:transparent;pointer-events:auto}.corridor-access[hidden]{display:none}.corridor-access img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:brightness(.62) saturate(.67) drop-shadow(0 8px 8px #000d);transition:filter .18s,translate .18s}.corridor-access span{position:absolute;left:50%;bottom:7%;translate:-50% 0;padding:6px 10px;background:#071312ed;border:1px solid #699a8f;color:#dcc695;font:8px Georgia,serif;letter-spacing:.13em;white-space:nowrap;box-shadow:0 4px 12px #000b}.corridor-access:hover img,.corridor-access:focus-visible img{filter:brightness(.78) saturate(.76) drop-shadow(0 0 12px #28d7dc70);translate:0 -3px}.corridor-access:focus-visible{outline:0}.corridor-access:disabled{pointer-events:none}
 
 .damage-number.morale-number{color:#d7a5ff;font-size:23px;text-shadow:0 2px 3px #000,0 0 12px #7427a8}
 
@@ -186,3 +189,20 @@ body{overflow-x:hidden}
 
 .mission .stone-column.stone-pier{width:64vh;height:125vh;filter:brightness(.62) hue-rotate(-45deg)}
 .mission .stone-column.stone-arch{width:165vh;height:108vh}
+
+/* Room lifts sit behind the walkable floor; old corridor portal caps are retired. */
+.mission #playfield{pointer-events:none}
+.mission #endcaps .cap{display:none}
+.mission.entry-corridor #endcaps .cap-left{display:block}
+.mission.final-corridor #endcaps .cap-right{display:block}
+.mission .corridor-access{z-index:58;width:62vh;height:45vh;translate:-50% -100%;animation:corridor-platform-float 3.8s ease-in-out infinite;will-change:transform}
+.mission .portal-exit.true-portal{width:34vh;height:52vh;background:transparent;border:0;clip-path:none;box-shadow:none}
+.mission .portal-exit.true-portal:hover,.mission .portal-exit.true-portal:focus-visible{background:radial-gradient(ellipse,#55e9ef20 0,transparent 68%);border:0;box-shadow:none;outline:1px solid #8ceff066;outline-offset:-5vh}
+.mission .portal-exit.true-portal:before{content:"";position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px;border:1px solid #7df2f0;transform:rotate(45deg);box-shadow:0 0 14px #50e7ef88,inset 0 0 12px #50e7ef55;animation:portal-beacon-ring 3.2s linear infinite;pointer-events:none}
+.mission .portal-exit.true-portal .drawn-icon,.mission .portal-exit.true-portal .hud-line-icon{position:relative;width:46px;height:46px;color:#d9fbf7;filter:drop-shadow(0 0 8px #53f4f2);animation:portal-beacon-icon 1.45s ease-in-out infinite;z-index:1}
+.mission-objective{position:absolute;z-index:115;left:160px;top:14px;min-width:220px;padding:7px 12px;background:#071311e8;border:1px solid #716445;box-shadow:0 4px 12px #0009;pointer-events:none}
+.mission-objective small,.mission-objective strong{display:block}.mission-objective small{font:8px Arial,sans-serif;letter-spacing:.18em;color:#789a93}.mission-objective strong{margin-top:3px;font:12px Georgia,serif;letter-spacing:.08em;color:#e6cf98}
+@keyframes portal-beacon-ring{0%{rotate:0deg;opacity:.35;scale:.82}50%{opacity:.9;scale:1}100%{rotate:180deg;opacity:.35;scale:.82}}
+@keyframes portal-beacon-icon{0%,100%{opacity:.7;scale:.9}50%{opacity:1;scale:1.12}}
+@keyframes corridor-platform-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@media(prefers-reduced-motion:reduce){.mission .corridor-access,.mission .portal-exit.true-portal:before,.mission .portal-exit.true-portal .drawn-icon,.mission .portal-exit.true-portal .hud-line-icon{animation:none}}
