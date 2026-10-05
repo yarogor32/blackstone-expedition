@@ -14,7 +14,7 @@
   };
   // Per supply checkpoint, independently configurable for every future recruit.
   window.EXPEDITION_METABOLISM = {
-    ranger: {food:1, energy:0}, human: {food:1, energy:0}, kroot: {food:1, energy:0},
+    ranger: {food:1, energy:0}, sororitas: {food:1, energy:1}, human: {food:1, energy:0}, kroot: {food:1, energy:0},
     'space-marine': {food:.25, energy:2}, drukhari: {food:1, energy:0},
     mechanicus: {food:1, energy:0}
   };

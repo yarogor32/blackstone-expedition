@@ -1,0 +1,4 @@
+window.RECRUIT_LINES={en:{
+ available:["That one by the wall has a steady eye. Worth a word.","A few new faces tonight. One of them might suit your crew.","There is a promising candidate over there. Quiet, but watchful.","Looking for another gun? I may know someone.","Have a look. They are waiting for a captain with a worthwhile offer."],
+ hired:["A sound choice. Bring them back in one piece.","Another seat filled. I will keep an ear out for more.","You have yourself a companion. The first round is on them."],
+ empty:["Sorry, nobody looking for work tonight. No new arrivals in a while.","All the willing hands have signed on elsewhere. Try after your next expedition.","Quiet docks, empty tables. I have nobody to recommend just now.","Not a fresh face in days. I will let the next arrivals know you are hiring."]}};

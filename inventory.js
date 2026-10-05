@@ -67,7 +67,7 @@
       else [this.slots[from],this.slots[to]]=[b,a];this.save();
     }
     split(index){const s=this.slots[index],empty=this.slots.indexOf(null);if(!s||s.qty<2||empty<0)return false;const n=Math.floor(s.qty/2);s.qty-=n;this.slots[empty]={id:s.id,qty:n};this.save();return true;}
-    restPlaces(hero){return hero.restPlaces || ({ranger:['ship'],'space-marine':['temple','ship'],drukhari:['bar','ship'],human:['bar','temple','ship'],'rogue-trader':['bar','temple','ship'],kroot:['bar','ship'],mechanicus:['temple','ship']}[hero.classId||hero.id] || ['ship']);}
+    restPlaces(hero){return hero.restPlaces || ({ranger:['ship'],sororitas:['temple','ship'],'space-marine':['temple','ship'],drukhari:['bar','ship'],human:['bar','temple','ship'],'rogue-trader':['bar','temple','ship'],kroot:['bar','ship'],mechanicus:['temple','ship']}[hero.classId||hero.id] || ['ship']);}
     resting(id){return Object.values(this.state.restSlots).some(slots=>slots.some(s=>s?.id===id));}
     assignRest(place,index,hero){
       const level=this.state.buildingLevels[place]||1;
@@ -80,10 +80,19 @@
       const slot=this.state.restSlots[place]?.[index];if(this.run||!slot)return false;
       this.state.credits+=slot.cost;this.state.restSlots[place][index]=null;this.save();return true;
     }
+    dismissHero(id){
+      if(this.run?.party.some(hero=>hero.id===id))return 'active';
+      if(this.resting(id))return 'resting';
+      const roster=this.state.roster||[],index=roster.findIndex(hero=>hero.id===id);if(index<0)return false;
+      roster.splice(index,1);
+      this.state.expeditionPartyIds=(this.state.expeditionPartyIds||[]).filter(heroId=>heroId!==id);
+      delete this.state.heroProfiles?.[id];delete this.state.foodDebt?.[id];
+      this.save();return true;
+    }
     completeRest(){
       for(const slots of Object.values(this.state.restSlots))for(let i=0;i<slots.length;i++)if(slots[i]){
         const profile=this.state.heroProfiles[slots[i].id] ||= {level:1,maxMorale:100};
-        profile.morale=profile.maxMorale||100;profile.affliction=null;slots[i]=null;
+        profile.morale=profile.maxMorale||100;profile.affliction=null;profile.afflictions=[];slots[i]=null;
       }
     }
     begin(party){
@@ -113,11 +122,16 @@
       const lootValue=cargo.filter(s=>ITEMS[s.id].kind==='loot').reduce((n,s)=>n+s.value,0);
       const penalty=Math.ceil(lootValue*lossRate);
       const earned=defeated?0:gross-penalty;
+      const moralePenalty=fled&&!defeated?10:0;
+      for(const hero of this.run.party.filter(h=>h.hp>0)){
+        window.Morale.complete(hero);
+        if(moralePenalty){window.Morale.hurt(hero,0,false,Math.random,moralePenalty);window.Morale.complete(hero);}
+      }
       const fallen=this.recordDeaths(this.run.party);
       this.state.foodDebt=Object.fromEntries(this.run.party.filter(h=>h.hp>0).map(u=>[u.id,u.foodDebt||0]));
-      for(const hero of this.run.party.filter(h=>h.hp>0))this.state.heroProfiles[hero.id]={level:hero.level,morale:hero.morale,maxMorale:hero.maxMorale,affliction:hero.affliction||null};
-      this.completeRest();this.state.credits+=earned;this.state.run=null;this.state.slots=Array(16).fill(null);this.save();
-      return {fallen,defeated,fled:fled&&!defeated,difficulty,lossRate,penalty,gross,lootValue,cargo,earned,balance:this.state.credits};
+      for(const hero of this.run.party.filter(h=>h.hp>0))this.state.heroProfiles[hero.id]={level:hero.level,morale:hero.morale,maxMorale:hero.maxMorale,affliction:hero.affliction||null,afflictions:hero.afflictions||[],positiveTraits:hero.positiveTraits||[]};
+      this.completeRest();this.state.recruitStock=Math.max(this.state.roster?.length?0:1,Math.floor(Math.random()*4));this.state.credits+=earned;this.state.run=null;this.state.slots=Array(16).fill(null);this.save();
+      return {moralePenalty,fallen,defeated,fled:fled&&!defeated,difficulty,lossRate,penalty,gross,lootValue,cargo,earned,balance:this.state.credits};
     }
     use(id,heroId,{combat=false}={}){
       if(!this.run||!this.count(id))return 'noEffect';
@@ -127,7 +141,7 @@
         if(combat)return 'combatFood';
         if(!hero||!(hero.food>0)||hero.hp>=hero.maxHp)return 'noEffect';
         hero.hp=Math.min(hero.maxHp,hero.hp+Math.max(1,Math.ceil(hero.maxHp*.1)));
-      }else if(id==='bandage'&&hero?.bleed){hero.bleed=0;}
+      }else if(id==='bandage'&&hero?.bleed){hero.bleed=null;}
       else if(id==='antidote'&&hero?.poison){hero.poison=0;}
       else return 'noEffect';
       this.remove(id,1);return null;

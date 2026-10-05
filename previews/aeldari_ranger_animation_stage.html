@@ -85,6 +85,7 @@
       walk: {path:game+'ranger-walk.png',count:24,fps:15.2145},
       idle: {path:game+'ranger-idle.png',count:129,fps:17.28,scale:348/388,foot:450,target:470},
       attack: {path:game+'ranger-shoot.png',count:77,fps:24,scale:(387*(348/388))/350,foot:431,target:470},
+      blade: {path:game+'ranger-dagger.png',count:40,fps:24,scale:348/354,foot:440,target:470},
       confidence: {path:game+'ranger-confidence.png',count:41,fps:12},
       stress: {path:game+'ranger-low-morale2.png',count:41,fps:12,scale:348/381,foot:445,target:470},
       hit: {path:game+'ranger-hit.png',count:125,fps:41.4,scale:.99,foot:467,target:470,duration:125/41.4*(.7/1.5+.3)}
@@ -95,6 +96,7 @@
       {name:'Walk left · mirrored',clip:'walk',duration:5,move:-1,face:-1},
       {name:'Idle · current',clip:'idle'},
       {name:'Shoot · current',clip:'attack'},
+      {name:'Blade Strike · Ranger_Dagger',clip:'blade'},
       {name:'Got hit · variable speed',clip:'hit'},
       {name:'Low morale · Ranger_LowMorale2',clip:'stress'},
       {name:'Confidence up',clip:'confidence'}

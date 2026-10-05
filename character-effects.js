@@ -4,6 +4,7 @@
   const definitions={stress:{image:halo,width:350,height:296,anchorX:260,anchorY:142,pivotX:.5,pivotY:400/760,fadeIn:180,fadeOut:500}};
   const confidence=new Image();confidence.src=new URL('effects/confidence-halo-v1.png',document.currentScript.src).href;
   definitions.confidence={...definitions.stress,image:confidence};
+  definitions.moraleHit={...definitions.stress,fadeIn:100,fadeOut:300};
   class CharacterEffects {
     constructor(){this.active=new Map();}
     play(id,type,start,duration){if(definitions[type])this.active.set(id+':'+type,{id,type,start,end:start+duration});}

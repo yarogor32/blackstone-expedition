@@ -5,18 +5,36 @@
   const audio = document.querySelector('#music');
   const supplies = window.Supplies;
   const inventory = supplies.inventory;
+  const ROSTER_LIMIT = 50;
   const expeditionCrew = [];
   function syncCrew(){
-    inventory.state.roster ||= [{id:'ranger',name:'Aeldari Ranger',classId:'ranger',rank:3,...window.EXPEDITION_METABOLISM.ranger}];
+    inventory.state.roster ||= [{id:'ranger',name:'Aeldari Ranger',classId:'ranger',species:'aeldari',xenos:true,rank:3,...window.EXPEDITION_METABOLISM.ranger}];
+    inventory.state.roster.forEach(hero=>{if((hero.classId||'ranger')==='ranger'){hero.species||='aeldari';hero.xenos=true;}else if(hero.classId==='sororitas'){hero.species||='human';hero.xenos=false;}});
     expeditionCrew.splice(0,expeditionCrew.length,...inventory.state.roster);
+    const rosterIds=new Set(expeditionCrew.map(hero=>hero.id));
+    if(!Array.isArray(inventory.state.expeditionPartyIds))inventory.state.expeditionPartyIds=expeditionCrew.filter(hero=>!inventory.resting(hero.id)).slice(0,4).map(hero=>hero.id);
+    else inventory.state.expeditionPartyIds=inventory.state.expeditionPartyIds.filter((id,index,ids)=>rosterIds.has(id)&&ids.indexOf(id)===index).slice(0,4);
   }
   syncCrew();
-  function recruitRanger(){
-    if(inventory.run||expeditionCrew.length>=4)return;
-    let number=inventory.state.nextRecruitId||2;while([...expeditionCrew,...(inventory.state.fallen||[])].some(h=>h.id==='ranger-'+number))number++;const id='ranger-'+number;inventory.state.nextRecruitId=number+1;
-    inventory.state.roster.push({id,classId:'ranger',name:'Aeldari Ranger '+number,...window.EXPEDITION_METABOLISM.ranger});
-    const ranks=[3,2,4,1];inventory.state.roster.forEach((hero,i)=>hero.rank=ranks[i]);
-    syncCrew();inventory.save();renderHire();
+  function selectedExpeditionCrew(){
+    const ids=(inventory.state.expeditionPartyIds||[]).filter(id=>expeditionCrew.some(hero=>hero.id===id&&!inventory.resting(id))).slice(0,4);
+    if(ids.length!==(inventory.state.expeditionPartyIds||[]).length){inventory.state.expeditionPartyIds=ids;inventory.save();}
+    return ids.map(id=>expeditionCrew.find(hero=>hero.id===id)).filter(hero=>hero&&!inventory.resting(hero.id)).slice(0,4).map((hero,index)=>({...hero,rank:4-index}));
+  }
+  function toggleExpeditionHero(id,remove=false){
+    const hero=expeditionCrew.find(entry=>entry.id===id);if(!hero||inventory.resting(id))return;
+    const ids=inventory.state.expeditionPartyIds||[];const index=ids.indexOf(id);
+    if(index>=0)ids.splice(index,1);else if(!remove&&ids.length<4)ids.push(id);
+    inventory.state.expeditionPartyIds=ids;inventory.save();refreshDockParty();
+  }
+  function recruitHero(){
+    if(inventory.run||expeditionCrew.length>=ROSTER_LIMIT||(inventory.state.recruitStock??3)<=0)return;
+    const candidate=availableRecruits()[selectedHero]||availableRecruits()[0];if(!candidate)return;
+    inventory.state.recruitStock=(inventory.state.recruitStock??3)-1;
+    const classId=candidate.classId;let number=1;const occupied=[...expeditionCrew,...(inventory.state.fallen||[])];while(occupied.some(h=>h.id===(number===1?classId:classId+'-'+number)))number++;const id=number===1?classId:classId+'-'+number;
+    inventory.state.roster.push({id,classId,name:number===1?candidate.name:candidate.name+' '+number,species:candidate.species,xenos:!!candidate.xenos,...window.EXPEDITION_METABOLISM[classId]});
+    selectedHero=0;
+    syncCrew();inventory.save();renderHire('hired');
   }
   let expeditionReport = null;
   let mapOpen = false;
@@ -77,17 +95,23 @@
     greetingTimer = setTimeout(dismissGreeting, place === 'market' ? 5000 : 6500);
   }
   const heroes = [
-    {name:'Aeldari Ranger', file:'aeldari-ranger', role:'Mobile ranged fighter', positions:'2–4', moves:['Shuriken Catapult — targets 2–4','Swift Step — reposition and gain defense','Foresight — helps an ally evade the next hit'], trait:'Needs food at camp. Severe injuries require treatment at base.', rest:'Rogue Trader Yacht', available:true},
+    {classId:'sororitas',species:'human',xenos:false,name:'Sister of Battle', file:'sororitas', role:'Flame / Control / Morale', positions:'1–3', moves:['Flamer Sweep — burns two adjacent enemy ranks','Shock Maul — usable from ranks 1–3 and may Stun a front target','Prayer — restores morale to non-xenos allies'], trait:'Power armour grants 35% Stun resistance. Her prayers do not affect xenos.', rest:'Shrine or Rogue Trader Yacht', available:true},
+    {classId:'ranger',species:'aeldari',xenos:true,name:'Aeldari Ranger', file:'aeldari-ranger', role:'Mobile ranged fighter', positions:'2–4', moves:['Rifle Shot — targets all ranks','Aimed Shot — rear targets','Blade Strike — may cause Bleeding','Evasive Step — reposition and evade'], trait:'Aeldari xenos. Needs food at camp. Severe injuries require treatment at base.', rest:'Rogue Trader Yacht', available:true},
     {name:'Space Marine', file:'space-marine', role:'Frontline / Guard'},
     {name:'Rogue Trader', file:'rogue-trader', role:'Support / Versatile'},
     {name:'Drukhari Wych', file:'drukhari-wych', role:'Arena gladiator / Evasion'}
   ];
+  function availableRecruits(){const stock=inventory.state.recruitStock??3;return Array.from({length:stock},(_,i)=>heroes[i%2]);}
   const buildingOrder = ['temple','workshop','bar','market','ship','docks'];
   const buildingLevel = Object.fromEntries(buildingOrder.map(name => [name,Math.max(1,Math.min(3,inventory.state.buildingLevels[name]||1))]));
   const effectFiles = {
     breachExplode:'BreachExplode.wav', chestOpen:'Chest_open.wav', purchase:'Purchase.wav',
     buildingUpgrade:"BuildingUpgrade.mp3",
+    raidAmbient:'Raid_ambient.mp3',
+    psychicAttack:'psychological_attack.wav', psychologicalBreakdown:'psychological_breakdown.wav',
     rangerHit:"Ranger_GotHit.wav", rangerDeath:'Ranger_Death2.wav', rangerShoot:'Ranger_Shoot.wav',
+    sororitasFlamer:'Flamethrower.wav', sororitasPray:'Sororitas_pray.mp3', sororitasStress:'Sororitas_Stress.mp3',
+    sororitasPain1:'Sororitas_pain1.wav', sororitasPain2:'Sororitas_pain2.mp3', sororitasDeath:'Sororitas_death.wav',
     tyranidDeath:'Tyranyd_Death.wav', tyranidHit1:'Tyranyd_GotHit.wav', tyranidHit2:'Tyranyd_GotHit2.wav',
     termagantShoot:'Termogant_shoot.wav', hormagauntAttack:'Hormagaunt_Attacks.wav',
     hover:'Mouse-hover.mp3', teleportOut:'Teleport - out.mp3', teleportIn:'Teleport-in.mp3',
@@ -95,16 +119,18 @@
     templeEnter:'Shrine - Enter.mp3', shipEnter:'Yacht - enter.mp3',
     marketEnter:'Market - enter.mp3', workshopEnter:'Workshop-Enter.mp3'
   };
-  const combatEffectNames=['rangerHit','rangerDeath','rangerShoot','tyranidDeath','tyranidHit1','tyranidHit2','termagantShoot','hormagauntAttack'];
-  let tyranidHitVariant=0;
-  const effectVolume = {hover:.65};
+  const combatEffectNames=['psychicAttack','psychologicalBreakdown','rangerHit','rangerDeath','rangerShoot','sororitasFlamer','sororitasPray','sororitasStress','sororitasPain1','sororitasPain2','sororitasDeath','tyranidDeath','tyranidHit1','tyranidHit2','termagantShoot','hormagauntAttack'];
+  let tyranidHitVariant=0,sororitasPainVariant=0;
+  const effectVolume = {hover:.65, workshopEnter:.5, raidAmbient:.5};
+  const effectVersions={sororitasPain1:'133',sororitasPain2:'135'};
   const effects = Object.fromEntries(Object.entries(effectFiles).map(([name,file]) => {
-    const sound = new Audio(`sfx/${encodeURIComponent(file)}`);
+    const sound = new Audio(`sfx/${encodeURIComponent(file)}${effectVersions[name]?`?v=${effectVersions[name]}`:''}`);
     sound.preload = 'auto';
     sound.dataset.effect = name;
     document.body.append(sound);
     return [name,sound];
   }));
+  const raidAmbient=effects.raidAmbient;raidAmbient.loop=true;
   const buildingEffects = {temple:'templeEnter',workshop:'workshopEnter',bar:'barEnter',market:'marketEnter',ship:'shipEnter',docks:'docksEnter'};
   const effectFades = new Map();
   function playEffect(name) {
@@ -208,6 +234,8 @@
     }
     if (soundEnabled && !(mission?.defeated && audio.ended)) audio.play().catch(updateMusicControl);
     else audio.pause();
+    if(page==='mission')raidAmbient.play().catch(()=>{});
+    else {raidAmbient.pause();raidAmbient.currentTime=0;}
   }
 
   function startMenuMusicOnGesture(event) {
@@ -313,7 +341,7 @@
 
   function go(destination) {
     if (hubLoading) return;
-    if(destination==='mission'&&!inventory.run&&!expeditionCrew.some(hero=>!inventory.resting(hero.id))){
+    if(destination==='mission'&&!inventory.run&&!selectedExpeditionCrew().length){
       const panel=app.querySelector('.portal-panel, .building-panel');if(panel&&!panel.querySelector('.rest-warning'))panel.insertAdjacentHTML('afterbegin','<p class="rest-warning" role="alert">No crew available. Recruit at the Tavern or cancel a rest assignment before departure.</p>');return;
     }
     if (buildingEffects[page] && destination !== page) fadeEffect(buildingEffects[page]);
@@ -337,6 +365,7 @@
     if (page === 'mission' && destination !== 'mission') {
       mission?.stopCombat?.();
       combatEffectNames.forEach(name=>fadeEffect(name));
+      raidAmbient.pause();raidAmbient.currentTime=0;
       mission = null;
       keys.clear();
     }
@@ -345,7 +374,8 @@
       return;
     }
     if (destination === 'mission' && page !== 'mission') {
-      inventory.begin(expeditionCrew);
+      inventory.begin(selectedExpeditionCrew());
+      raidAmbient.play().catch(()=>{});
       enterMission();
       return;
     }
@@ -375,12 +405,34 @@
   }
 
   function openCharacter(id){
-    const hero=inventory.run?.party.find(h=>h.id===id);if(!hero||document.querySelector('.character-dialog'))return;
-    keys.clear();const mod=window.Morale.modifiers(hero),condition=window.Morale.states[hero.affliction];
+    const member=expeditionCrew.find(h=>h.id===id),deployed=inventory.run?.party.find(h=>h.id===id);const hero=deployed||(member?{hp:28,maxHp:28,morale:100,maxMorale:100,...member,...inventory.state.heroProfiles[id]}:null);if(!hero||document.querySelector('.character-dialog'))return;
+    keys.clear();const mod=window.Morale.modifiers(hero),conditions=window.Morale.entries(hero),positive=window.Morale.entries(hero,true);
     const row=(label,value,note='')=>`<dt>${label}</dt><dd>${value}${note?` <small>${note}</small>`:''}</dd>`;
+    const sororitas=(hero.classId||'ranger')==='sororitas',portrait=sororitas?'sororitas':'aeldari-ranger',className=sororitas?'Sister of Battle':'Aeldari Ranger';
+    const abilities=sororitas?'Flamer Sweep · 88% hit · 3–5 damage to two adjacent ranks<br>Shock Maul · ranks 1–3 · 92% hit · 4–7 damage · 55% base Stun<br>Prayer · +12 Morale to every non-xenos ally<br>Guarded Advance · Move back and evade':'Rifle Shot · 90% hit · 5–8 damage · 8% CRIT<br>Aimed Shot · 80% hit · 8–12 damage · 12% CRIT<br>Blade Strike · 95% hit · 4–7 damage · 5% CRIT · 45% base Bleed<br>Evasive Step · Move back and evade';
+    const selected=selectedExpeditionCrew().find(entry=>entry.id===id),rank=deployed?.rank??selected?.rank;
+    const dismissBlocked=deployed?'This character is currently on an expedition.':inventory.resting(id)?'Cancel this character’s rest assignment before dismissing them.':'';
     const dialog=document.createElement('dialog');dialog.className='options-dialog character-dialog';
-    dialog.innerHTML=`<header><h2>${escapeText(hero.name)}</h2>${button('Close','character-close',{small:true})}</header><div class="character-layout"><img class="character-portrait" src="portraits/aeldari-ranger.png" alt="${escapeText(hero.name)}"><div><p>Level ${hero.level||1} · Rank ${hero.rank} · ${hero.hp<=0?'Fallen':'Aeldari Ranger'}</p><dl class="character-stats">${row('Health',`${hero.hp} / ${hero.maxHp}`)}${row('Morale',`${hero.morale??100} / ${hero.maxMorale||100}`)}${row('Speed',(hero.speed??6)+(mod.speed||0),mod.speed?`base ${hero.speed??6}, ${mod.speed}`:'')}${row('Accuracy modifier',`${mod.accuracy||0}%`,'applies to each skill')}${row('Damage',`${Math.round((mod.damage||1)*100)}%`,'of skill damage')}${row('Critical modifier',`${(hero.critBonus||0)+(mod.crit||0)}%`,'added to skill chance')}${row('Incoming damage',`${Math.round((mod.incoming||1)*100)}%`)}${row('Stress resistance',`${Math.round((hero.stressResistance||0)*100)}%`)}</dl><h3>Conditions & afflictions</h3><p class="character-affliction">${condition?escapeText(condition.name)+' — '+escapeText(condition.description):'No psychological afflictions'}</p><p>${hero.bleed?'Bleeding · '+hero.bleed+'<br>':''}${hero.poison?'Poisoned · '+hero.poison+'<br>':''}${hero.evade?'Evasion ready':''}</p><h3>Positive traits</h3><p>${hero.positiveTraits?.length?hero.positiveTraits.map(t=>escapeText(t.name||t)).join(', '):'None'}</p><h3>Abilities</h3><p>Rifle Shot · 90% hit · 5–8 damage · 8% CRIT<br>Aimed Shot · 80% hit · 8–12 damage · 12% CRIT<br>Blade Strike · 95% hit · 4–7 damage · 5% CRIT<br>Evasive Step · Move back and evade</p><small>Base ability values; modifiers above apply in combat.</small></div></div>`;
+    dialog.innerHTML=`<header><h2>${escapeText(hero.name)}</h2>${button('Close','character-close',{small:true})}</header><div class="character-layout"><div class="character-portrait-wrap"><img class="character-portrait" src="portraits/${portrait}.png" alt="${escapeText(hero.name)}">${window.GameHUD.traits(hero)}</div><div><p>Level ${hero.level||1} · ${rank?`Expedition rank ${rank}`:'Reserve'} · ${hero.hp<=0?'Fallen':className}</p><dl class="character-stats">${row('Health',`${hero.hp} / ${hero.maxHp}`)}${row('Morale',`${hero.morale??100} / ${hero.maxMorale||100}`)}${row('Speed',(hero.speed??6)+(mod.speed||0),mod.speed?`base ${hero.speed??6}, ${mod.speed}`:'')}${row('Accuracy modifier',`${mod.accuracy||0}%`,'applies to each skill')}${row('Damage',`${Math.round((mod.damage||1)*100)}%`,'of skill damage')}${row('Critical modifier',`${(hero.critBonus||0)+(mod.crit||0)}%`,'added to skill chance')}${row('Incoming damage',`${Math.round((mod.incoming||1)*100)}%`)}${row('Stress resistance',`${Math.round((hero.stressResistance||0)*100)}%`)}${row('Stun resistance',`${hero.stunResist??(sororitas?35:20)}%`)}</dl><h3>Conditions & afflictions</h3><p class="character-affliction">${conditions.length?conditions.map(c=>escapeText(c.name)+' — '+escapeText(c.description)).join('<br>'):'No psychological afflictions'}</p><p>${hero.bleed?`Bleeding · ${hero.bleed.damage} HP × ${hero.bleed.turns} turns<br>`:''}${hero.stunned?.turns?`Stunned · ${hero.stunned.turns} turn<br>`:''}${hero.poison?'Poisoned · '+hero.poison+'<br>':''}${hero.evade?'Evasion ready':''}</p><h3>Positive traits</h3><p>${positive.length?positive.map(c=>escapeText(c.name)+' — '+escapeText(c.description)).join('<br>'):'None'}</p><h3>Abilities</h3><p>${abilities}</p><small>${sororitas?'Stun chance = base chance +15% on CRIT − target resistance. Maximum 85%. Prayer ignores Aeldari and other xenos.':'Bleed chance = base chance +20% on CRIT − target resistance. Other modifiers above apply in combat.'}</small></div></div><footer class="character-dialog-actions"><button class="btn small dismiss-hero" data-action="character-dismiss-${escapeText(id)}" ${dismissBlocked?'disabled':''} title="${escapeText(dismissBlocked||'Permanently remove this character from your roster')}">Dismiss character</button>${dismissBlocked?`<small>${escapeText(dismissBlocked)}</small>`:''}</footer>`;
+    const opener=document.activeElement;
+    app.append(dialog);dialog.addEventListener('close',()=>{dialog.remove();opener?.focus();});
+    let outsideDown=false;const outside=e=>{const r=dialog.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom;};
+    dialog.addEventListener('pointerdown',e=>{outsideDown=e.target===dialog&&outside(e);});
+    dialog.addEventListener('click',e=>{if(outsideDown&&e.target===dialog&&outside(e))dialog.close();outsideDown=false;});dialog.showModal();
+  }
+
+  function requestDismissHero(id){
+    const hero=expeditionCrew.find(entry=>entry.id===id);if(!hero)return;
+    if(inventory.run?.party.some(entry=>entry.id===id)||inventory.resting(id))return;
+    document.querySelector('.character-dialog')?.close();
+    const dialog=document.createElement('dialog');dialog.className='options-dialog dismiss-dialog';
+    dialog.innerHTML=`<h2>Dismiss ${escapeText(hero.name)}?</h2><p>This permanently removes the character and their accumulated traits from your roster.</p><div class="options-actions">${button('Keep character','dismiss-cancel',{small:true})}<button class="btn small dismiss-hero" data-action="dismiss-confirm-${escapeText(id)}">Dismiss permanently</button></div>`;
     app.append(dialog);dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();
+  }
+
+  function dismissHero(id){
+    const result=inventory.dismissHero(id);if(result!==true)return;
+    document.querySelector('.dismiss-dialog')?.close();syncCrew();render();
   }
 
   function openOptions() {
@@ -465,10 +517,13 @@
     app.innerHTML = `<section class="stage hub-layout"><div class="map">${debris}${layers}<div class="map-tip">Select the Docks to enter the fortress</div></div><div class="map-label">Precipice</div>${expeditionCrew.length?window.GameHUD.hub(inventory,expeditionCrew.map(hero=>({...hero,...inventory.state.heroProfiles[hero.id]}))):'<aside class="hub-commander">No crew · Recruit at the Tavern</aside>'}${renderBaseControls()}${renderBaseStock()}</section>`;
   }
 
-  function renderHire() {
-    const hero = heroes[selectedHero];
-    const roster = heroes.map((item,index) => `<button type="button" class="recruit${selectedHero === index ? ' active' : ''}${item.available ? '' : ' locked'}" data-action="hero-${index}" ${item.available ? '' : 'disabled'}><img src="portraits/${item.file}.png" alt=""><span><strong>${item.name}</strong><small>${item.role} · ${item.available ? 'Selected' : 'Coming Soon'}</small></span></button>`).join('');
-    app.innerHTML = `${renderTop()}<section class="scene" style="background-image:url('backgrounds/recruitment.png')"><div class="hire-wrap"><h2>Recruit Companions</h2><p class="caption">Test recruitment: hire up to four Rangers for free. Each has independent health, morale and rest assignments.</p><div class="party">${Array.from({length:4},(_,i)=>`<div class="slot">${expeditionCrew[i]?escapeText(expeditionCrew[i].name):"Empty slot"}</div>`).join('')}</div><div class="hire-layout"><div class="roster">${roster}</div><div class="detail"><img src="portraits/${hero.file}.png" alt="Aeldari Ranger"><div><h3>${hero.name}</h3><dl class="facts"><dt>Role</dt><dd>${hero.role}</dd><dt>Ranks</dt><dd>${hero.positions}</dd><dt>Trait</dt><dd>${hero.trait}</dd><dt>Recovery</dt><dd>${hero.rest}</dd></dl><p class="tag">Starting abilities</p><ul class="moves">${hero.moves.map(move => `<li>${move}</li>`).join('')}</ul>${button(expeditionCrew.length>=4?'Crew full · 4 / 4':'Recruit Ranger · Free','recruit-ranger',{disabled:expeditionCrew.length>=4||!!inventory.run})}</div></div></div><div class="hire-back">${button('Back to Tavern','bar',{small:true})}</div></div></section>`;
+  function renderHire(topic){
+    inventory.state.recruitStock??=3;inventory.save();
+    const stock=inventory.state.recruitStock,candidates=availableRecruits();if(selectedHero>=candidates.length)selectedHero=0;const hero=candidates[selectedHero]||heroes[0];
+    const lines=(window.RECRUIT_LINES[document.documentElement.lang]||window.RECRUIT_LINES.en)[stock===0?'empty':topic||'available'];
+    const line=lines[Math.floor(Math.random()*lines.length)];
+    app.innerHTML=`<section class="recruit-screen" style="background-image:url('interiors/bar.png')"><div class="recruit-top">${button('Back to Tavern','bar',{small:true})}</div><div class="recruit-panels"><section class="recruit-panel"><h3>Your crew <small>${expeditionCrew.length} / ${ROSTER_LIMIT}</small></h3><div class="recruit-crew">${expeditionCrew.map(h=>`<button class="recruit-mini" data-action="inspect-hero-${h.id}">${window.GameHUD.face(h)}<span><strong>${escapeText(h.name)}</strong><small>Level ${inventory.state.heroProfiles[h.id]?.level||1}${inventory.resting(h.id)?' · Resting':''}</small></span></button>`).join('')||'<p>No companions recruited.</p>'}</div></section><section class="recruit-panel"><h3>Available <small>${stock}</small></h3>${stock?`<div class="recruit-candidates">${candidates.map((candidate,i)=>`<button class="recruit-mini candidate ${selectedHero===i?'selected':''}" data-action="hero-${i}">${window.GameHUD.face({id:'candidate-'+i,classId:candidate.classId,name:candidate.name})}<span><strong>${escapeText(candidate.name)}</strong><small>Level 1 · ${escapeText(candidate.role)}</small></span></button>`).join('')}</div><div class="recruit-facts"><strong>${escapeText(hero.name)}</strong><p>Ranks ${escapeText(hero.positions)} · ${escapeText(hero.rest)}</p><p>${hero.moves.map(escapeText).join(' · ')}</p><p>${escapeText(hero.trait)}</p></div>${button(expeditionCrew.length>=ROSTER_LIMIT?'Roster full':'Recruit · Free','recruit-selected',{disabled:expeditionCrew.length>=ROSTER_LIMIT||!!inventory.run})}`:'<div class="recruit-empty"><span>◇</span><p>No candidates available</p><small>Check again after your next expedition.</small></div>'}</section></div><aside class="recruit-host speaking"><img src="npcs/bar.png" alt="Bartender"><div class="recruit-speech">${escapeText(line)}</div></aside>${renderBaseControls()}${renderBaseStock()}</section>`;
+    const host=app.querySelector('.recruit-host');setTimeout(()=>host?.classList.remove('speaking'),5000);
   }
 
   let selectedRestSlot=null;
@@ -500,11 +555,18 @@
     showGreeting(place);
   }
 
-  function portalChoices(){return `<label class="portal-difficulty">Difficulty <select data-expedition-difficulty>${Object.keys(window.EXPEDITION_DIFFICULTIES).map(id=>`<option value="${id}" ${inventory.state.difficulty===id?'selected':''}>${supplies.t(id)}</option>`).join('')}</select><small>Fleeing loss: ${window.EXPEDITION_DIFFICULTIES[inventory.state.difficulty].retreatLoss*100}%</small></label><div class="portal-grid"><button type="button" class="portal-card available" data-action="mission"><span class="portal-mark">◇</span><strong>The First Passage</strong><small>Corridor · Enter and reach the far portal</small><em>ENTER PORTAL</em></button><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div></div>`;}
+  function dockParty(){
+    const crew=selectedExpeditionCrew().map(hero=>({...hero,...inventory.state.heroProfiles[hero.id]})),selectedIds=new Set(crew.map(hero=>hero.id));
+    const slots=Array.from({length:4},(_,i)=>{const hero=crew[i],rank=4-i;return hero?`<button type="button" class="dock-party-member" data-action="dock-remove-${escapeText(hero.id)}" title="Remove ${escapeText(hero.name)} from the expedition" aria-label="Remove ${escapeText(hero.name)} from expedition rank ${rank}">${window.GameHUD.face(hero)}<b>${rank}</b><span aria-hidden="true">×</span></button>`:`<div class="dock-party-member empty" aria-label="Empty expedition rank ${rank}"><b>${rank}</b><span>＋</span></div>`;}).join('');
+    const roster=expeditionCrew.map(hero=>{const resting=inventory.resting(hero.id),selected=selectedIds.has(hero.id),profile={...hero,...inventory.state.heroProfiles[hero.id]};return `<div class="dock-roster-entry ${selected?'selected':''} ${resting?'resting':''}"><button type="button" class="dock-roster-toggle" data-action="dock-toggle-${escapeText(hero.id)}" ${resting?'disabled':''} aria-pressed="${selected}" aria-label="${selected?'Remove':'Add'} ${escapeText(hero.name)} ${selected?'from':'to'} the expedition">${window.GameHUD.face(profile)}<span><strong>${escapeText(hero.name)}</strong><small>${resting?'Resting':selected?`Rank ${crew.find(entry=>entry.id===hero.id)?.rank}`:'Available'}</small></span></button><button type="button" class="dock-roster-info" data-action="inspect-hero-${escapeText(hero.id)}" aria-label="Inspect ${escapeText(hero.name)}" title="Character details">i</button></div>`;}).join('');
+    return `<section class="dock-party" aria-label="Expedition crew selection"><header><strong>Expedition Crew</strong><small>${crew.length} / 4 selected</small></header><div class="dock-party-caption">Formation · rear to front</div><div class="dock-party-slots">${slots}</div><div class="dock-roster-title">Available characters</div><div class="dock-roster">${roster||'<p>No recruited characters.</p>'}</div></section>`;
+  }
+  function refreshDockParty(){const panel=app.querySelector('.dock-party');if(panel)panel.outerHTML=dockParty();if(selectedExpeditionCrew().length)app.querySelector('.rest-warning')?.remove();}
+  function portalChoices(){return `${dockParty()}<label class="portal-difficulty">Difficulty <select data-expedition-difficulty>${Object.keys(window.EXPEDITION_DIFFICULTIES).map(id=>`<option value="${id}" ${inventory.state.difficulty===id?'selected':''}>${supplies.t(id)}</option>`).join('')}</select><small>Fleeing loss: ${window.EXPEDITION_DIFFICULTIES[inventory.state.difficulty].retreatLoss*100}%</small></label><div class="portal-grid"><button type="button" class="portal-card available" data-action="mission"><span class="portal-mark">◇</span><strong>The First Passage</strong><small>Corridor · Enter and reach the far portal</small><em>ENTER PORTAL</em></button><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div><div class="portal-card unavailable"><span class="portal-mark">◇</span><strong>Unknown Portal</strong><small>Coming Soon</small></div></div>`;}
   function renderPortals(){page='docks';renderBuilding('docks');}
 
   function renderMission() {
-    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="structures" class="world"><img class="module span" src="corridor/modules/bg20/blackstone_bg20_span_b.png" alt=""><img class="module ribs" src="corridor/modules/bg20/blackstone_bg20_ribs_d.png" alt=""><img class="module pylon" src="corridor/modules/bg20/blackstone_bg20_pylon_a.png" alt=""><img class="module aperture" src="corridor/modules/bg20/blackstone_bg20_aperture_c.png" alt=""></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-location">THE FIRST PASSAGE</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="distantLightning" aria-hidden="true"><svg viewBox="0 0 1600 1000" preserveAspectRatio="none"><g class="far-bolt bolt-a"><path d="M420 -20 L390 110 452 165 366 260 402 320 325 440 355 520 290 720 M366 260 L290 280 245 370 M402 320 L485 390 470 480"/></g><g class="far-bolt bolt-b"><path d="M1230 -20 L1170 100 1215 180 1120 290 1170 345 1060 490 1095 600 1020 820 M1120 290 L1030 320 990 430 M1170 345 L1270 420 1300 530"/></g></svg></div><div id="structures" class="world" aria-hidden="true"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:0vh;"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:180vh;transform:scaleX(-1);"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:360vh;"></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="corridorColumns" class="world" aria-hidden="true"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:-25vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:80vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:270vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:355vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:550vh;"></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-location">THE FIRST PASSAGE</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
     mountResourceHUD();
     missionReady = startMission();
   }
@@ -526,7 +588,10 @@
     const action = target.dataset.action;
     if(action.startsWith('inspect-hero-')){openCharacter(action.slice(13));return;}
     if(action==='character-close'){document.querySelector('.character-dialog')?.close();return;}
-    if(action==='recruit-ranger'){recruitRanger();return;}
+    if(action.startsWith('character-dismiss-')){requestDismissHero(action.slice(18));return;}
+    if(action==='dismiss-cancel'){document.querySelector('.dismiss-dialog')?.close();return;}
+    if(action.startsWith('dismiss-confirm-')){dismissHero(action.slice(16));return;}
+    if(action==='recruit-selected'){recruitHero();return;}
     if(action==='campaign-new'||action==='campaign-load'){campaignDialog(action==='campaign-new'?'new':'load');return;}
     if(action==='campaign-continue'){if(window.CampaignSaves.data.active!==null)loadCampaign(window.CampaignSaves.data.active);return;}
     if(action==='campaign-export-current'){window.CampaignSaves.export(window.CampaignSaves.data.active);return;}
@@ -534,7 +599,9 @@
 
     if(action.startsWith('rest-select-')){selectedRestSlot=Number(action.slice(12));refreshRest();return;}
     if(action.startsWith('rest-cancel-')){inventory.cancelRest(page,Number(action.slice(12)));selectedRestSlot=null;refreshRest();return;}
-    if(action.startsWith('rest-assign-')){const hero=expeditionCrew.find(h=>h.id===action.slice(12));if(hero&&selectedRestSlot!==null)inventory.assignRest(page,selectedRestSlot,hero);selectedRestSlot=null;refreshRest();return;}
+    if(action.startsWith('rest-assign-')){const hero=expeditionCrew.find(h=>h.id===action.slice(12));if(hero&&selectedRestSlot!==null&&inventory.assignRest(page,selectedRestSlot,hero)){inventory.state.expeditionPartyIds=(inventory.state.expeditionPartyIds||[]).filter(id=>id!==hero.id);inventory.save();}selectedRestSlot=null;refreshRest();return;}
+    if(action.startsWith('dock-toggle-')){toggleExpeditionHero(action.slice(12));return;}
+    if(action.startsWith('dock-remove-')){toggleExpeditionHero(action.slice(12),true);return;}
     if (action === 'flee') {if(mission?.combat)document.querySelector('.combat-controls-proxy [data-cmd="flee"]')?.click();else fleeExpedition();}
     else if (action === 'location-map') openLocationMap();
     else if (action === 'map-close') closeLocationMap();
@@ -556,6 +623,19 @@
     else go(action);
   });
   app.addEventListener('keydown',event=>{if(event.target.matches('[data-crew-hud]')&&['Enter',' '].includes(event.key)){event.preventDefault();event.target.click();}});
+  addEventListener('keydown',event=>{
+    if(event.key!=='Escape'||event.repeat||hubLoading)return;
+    // Native dialog cancellation owns the first Escape press for options, inventory,
+    // maps, campaign slots and character details.
+    if(document.querySelector('dialog[open]'))return;
+    const greeting=app.querySelector('.npc-greeting.visible');
+    if(greeting){event.preventDefault();dismissGreeting();return;}
+    if(selectedRestSlot!==null&&['bar','temple','ship'].includes(page)){event.preventDefault();selectedRestSlot=null;refreshRest();return;}
+    if(settingsOpen&&page==='menu'){event.preventDefault();settingsOpen=false;renderMenu();return;}
+    if(page==='hub'||page==='mission'){event.preventDefault();openOptions();return;}
+    const back={hire:'bar','market-supplies':'market',bar:'hub',market:'hub',temple:'hub',workshop:'hub',ship:'hub',docks:'hub'}[page];
+    if(back){event.preventDefault();go(back);}
+  });
   app.addEventListener('input', event => {
     const input = event.target.closest('[data-volume]');
     if (!input) return;
@@ -585,6 +665,7 @@
   });
   app.addEventListener('pointerdown', event => {
     if (page !== 'menu' && !(mission?.defeated && audio.ended) && soundEnabled && !event.target.closest('[data-action="sound"]')) audio.play().catch(() => {});
+    if(page==='mission'&&raidAmbient.paused)raidAmbient.play().catch(()=>{});
   });
 
   addEventListener('keydown', event => {
@@ -619,6 +700,8 @@
   }
   const walkAtlas = loadImage('sprites/ranger-walk.png');
   const idleAtlas = loadImage('sprites/ranger-idle.png');
+  const sororitasWalkAtlas = loadImage('sprites/sororitas-walk.png');
+  const sororitasIdleAtlas = loadImage('sprites/sororitas-idle.png');
   const encounterImages = [window.combatImages.raider,window.combatImages.gunner];
 
 
@@ -676,6 +759,10 @@
   }
   function updateExpedition(state,unit) {
     const run=inventory.run;if(!run||run.defeated)return;
+    window.ExpeditionSpeech.traitBark(run.party,(ally,loss,breaks)=>{
+      window.ExpeditionSpeech.moraleEffect(ally,loss,breaks,()=>{inventory.save();updateResourceHUD();});
+      inventory.save();updateResourceHUD();
+    });
     if(!state.nextBark){state.nextBark=performance.now()+60000;}else if(performance.now()>state.nextBark){window.ExpeditionSpeech.say(run.party.find(u=>u.hp>0),'neutral');state.nextBark=performance.now()+60000;}
     const progress=state.x/unit,segment=Math.floor(Math.max(0,progress-.48)/.4);
     if(segment>run.visited){
@@ -760,7 +847,7 @@
       'corridor/atmosphere/blackstone_bg30_fog_a_1024.png',
       'corridor/playfield/blackstone_playfield_floor_a_1024.png'];
     await Promise.all([
-      ...[walkAtlas,idleAtlas,...encounterImages,...Object.values(window.combatImages),...viewport.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})),
+      ...[walkAtlas,idleAtlas,sororitasWalkAtlas,sororitasIdleAtlas,...encounterImages,...Object.values(window.combatImages),...viewport.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})),
       ...backdropSources.map(loadHubImage)
     ]);
     if(mission!==loadingState)return;
@@ -792,16 +879,23 @@
       state.viewBias=(state.viewBias||0)+(viewGoal-(state.viewBias||0))*(1-Math.exp(-dt*6));
       positionPassageProps(state,unit);
       document.querySelector('#deep').style.backgroundPosition = `${-state.camera*.10}px center`;
-      document.querySelector('#structures').style.transform = `translateX(${-state.camera*.20}px)`;
+      document.querySelector('#structures').style.transform = `translateX(${-state.camera*.14}px)`;
       document.querySelector('#fog').style.backgroundPosition = `${-state.camera*.32}px center`;
+      document.querySelector('#corridorColumns').style.transform = `translateX(${-state.camera*.92}px)`;
       document.querySelector('#midground').style.transform = `translateX(${-state.camera*.55}px)`;
       for (const id of ['playfield','endcaps','foreground']) document.getElementById(id).style.transform = `translateX(${-state.camera}px)`;
+      const consolePanel=viewport.querySelector('.combat-console');
+      const consoleTop=consolePanel?consolePanel.getBoundingClientRect().top-viewport.getBoundingClientRect().top:unit;
+      state.floorLift=state.combat?Math.min(0,consoleTop-30-unit*846/1024):0;
+      const environmentBlur=(!reduced&&!state.stressFocus?(state.actionFocus||0):0)*3;
+      const props=document.getElementById('passageProps');if(props){props.style.filter=environmentBlur>.01?`blur(${environmentBlur}px)`:'none';props.style.transformOrigin=`${width*.5}px ${unit*846/1024}px`;props.style.scale=String(state.battleZoom+(state.actionFocus||0)*.07);props.style.translate=`${state.viewBias*unit*.028}px ${state.floorLift||0}px`;}
       // Screen-space transforms preserve the floor anchor; depth layers travel at different rates.
-      for(const [id,depth] of [['deep',.12],['structures',.3],['fog',.4],['midground',.6],['playfield',1],['endcaps',1],['foreground',1.4]]){
+      for(const [id,depth] of [['deep',.12],['distantLightning',.16],['structures',.3],['fog',.4],['midground',.6],['corridorColumns',.92],['playfield',1],['endcaps',1],['foreground',1.4]]){
         const layer=document.getElementById(id);
         layer.style.transformOrigin=`${width*.5}px ${unit*846/1024}px`;
-        layer.style.scale=String(1+(state.battleZoom-1)*Math.min(depth,1));
-        layer.style.translate=`${state.viewBias*unit*.028*depth}px 0`;
+        layer.style.filter=environmentBlur>.01?`blur(${environmentBlur}px)`:'none';
+        layer.style.scale=String(1+(state.battleZoom-1)*Math.min(depth,1)+(state.actionFocus||0)*.07*Math.min(depth,1));
+        layer.style.translate=`${state.viewBias*unit*.028*depth}px ${state.floorLift||0}px`;
       }
       const dpr = Math.min(devicePixelRatio || 1,2);
       if (canvas.width !== Math.round(width*dpr) || canvas.height !== Math.round(unit*dpr)) {
@@ -813,28 +907,22 @@
       ctx.setTransform(dpr,0,0,dpr,0,0);
       ctx.clearRect(0,0,width,unit);
       const isWalk = state.animation === 'walk';
-      const image = isWalk ? walkAtlas : idleAtlas;
-      const count = isWalk ? 24 : 129;
-      const fps = isWalk ? 15.2145 : 17.28;
-      const columns = 8;
-      const border = 2;
-      const gap = 4;
-      const frame = Math.floor(state.animationTime*fps)%count;
-      const sourceX = border+(frame%columns)*(512+gap);
-      const sourceY = border+Math.floor(frame/columns)*(512+gap);
       const size = Math.min(unit*.48,410);
       const footY = unit*(846/1024);
       const screenX = state.x-state.camera;
       if(!state.combat)window.ExpeditionSpeech?.position('ranger',width*.5+(screenX-width*.5)*state.battleZoom,footY-size*.69*state.battleZoom);
-      if (!state.combat && image.complete && image.naturalWidth) {
-        for(const [crewIndex,hero] of inventory.run.party.filter(h=>h.hp>0).entries()){
+      if (!state.combat) {
+        for(const [crewIndex,hero] of inventory.run.party.filter(h=>h.hp>0).sort((a,b)=>a.rank-b.rank).entries()){
+        const sister=hero.classId==='sororitas',image=sister?(isWalk?sororitasWalkAtlas:sororitasIdleAtlas):(isWalk?walkAtlas:idleAtlas);if(!image.complete||!image.naturalWidth)continue;
+        const count=sister?(isWalk?27:121):(isWalk?24:129),fps=sister?18:(isWalk?15.2145:17.28),frame=Math.floor(state.animationTime*fps)%count,sourceX=2+(frame%8)*516,sourceY=2+Math.floor(frame/8)*516;
         const heroScreenX=screenX-crewIndex*unit*.16;
         window.ExpeditionSpeech?.position(hero.id,width*.5+(heroScreenX-width*.5)*state.battleZoom,footY-size*.69*state.battleZoom);
         ctx.save();
         ctx.translate(width*.5+(heroScreenX-width*.5)*state.battleZoom,footY);
         ctx.scale(state.battleZoom,state.battleZoom);
         ctx.scale(state.facing,1);
-        if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
+        if(sister){const scale=isWalk?331/502:331/507,side=size*scale,anchor=isWalk?268.5:285.5,foot=isWalk?505:511;ctx.drawImage(image,sourceX,sourceY,512,512,-anchor*side/512,-foot*side/512,side,side);}
+        else if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
         else window.drawRanger(ctx,image,'idle',state.animationTime,-size/2,-size*(468/512),size);
         ctx.restore();
         }
@@ -847,9 +935,11 @@
           party:inventory.run.party,
           snapshot:inventory.run.battle,
           onCheckpoint:snapshot=>{if(inventory.run){inventory.run.battle=snapshot;inventory.save();}},
-          getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,size:Math.min(viewport.clientHeight*.48,410),zoom:state.battleZoom,bias:state.viewBias,center:viewport.clientWidth*.5}),
+          getLayout:()=>({unit:viewport.clientHeight,camera:state.camera,heroX:state.x,size:Math.min(viewport.clientHeight*.48,410),zoom:state.battleZoom,bias:state.viewBias,center:viewport.clientWidth*.5,width:viewport.clientWidth,footY:viewport.clientHeight*846/1024+(state.floorLift||0)}),
           onCameraSide:side=>{state.viewSide=side;},
           onStressFocus:id=>{state.stressFocus=id;},
+          onBreakdown:unit=>playEffect(unit?.classId==='sororitas'?'sororitasStress':'psychologicalBreakdown'),
+          onActionFocus:amount=>{state.actionFocus=amount;},
           onOptions:openOptions,
           onFlee:fleeExpedition,
           onInventory:refresh=>openInventory(true,refresh),
@@ -857,12 +947,16 @@
           onDefeat:()=>{state.defeated=true;inventory.run.defeated=true;inventory.save();setMusic();},
           onVictory:()=>{state.victoryCue=true;inventory.run.encounterDone=true;delete inventory.run.battle;inventory.queueLoot([{id:'credits',qty:650},{id:'salvage',qty:4}]);setMusic();},
           onAttack:(unit,skill)=>{
-            if(unit.side==='party' && ['shot','aim'].includes(skill))playEffect('rangerShoot');
+            if(unit.classId==='sororitas'&&skill==='flamer')playEffect('sororitasFlamer');
+            else if(unit.classId==='sororitas'&&skill==='pray')playEffect('sororitasPray');
+            else if(unit.side==='party' && ['shot','aim'].includes(skill))playEffect('rangerShoot');
             else if(unit.id==='raider')playEffect('hormagauntAttack');
             else if(unit.id==='gunner')playEffect('termagantShoot');
+            else if(unit.id==='psyker')playEffect('psychicAttack');
           },
           onHit:(unit,lethal)=>{
-            if(unit.side==='party')playEffect(lethal?'rangerDeath':'rangerHit');
+            if(unit.classId==='sororitas')playEffect(lethal?'sororitasDeath':(++sororitasPainVariant%2?'sororitasPain1':'sororitasPain2'));
+            else if(unit.side==='party')playEffect(lethal?'rangerDeath':'rangerHit');
             else if(unit.side==='enemy')playEffect(lethal?'tyranidDeath':(++tyranidHitVariant%2?'tyranidHit1':'tyranidHit2'));
           },
           onFinish:result => {

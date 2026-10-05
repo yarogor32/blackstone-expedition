@@ -7,7 +7,7 @@ function validate(s){
  if(!s||s.version!==1||!Number.isSafeInteger(s.credits)||s.credits<0||!Array.isArray(s.slots)||s.slots.length!==16)throw Error('Invalid save data');
  if(!s.slots.every(x=>x===null||(window.EXPEDITION_ITEMS[x.id]&&Number.isInteger(x.qty)&&x.qty>0&&x.qty<=window.EXPEDITION_ITEMS[x.id].stack)))throw Error('Invalid inventory');
  if(!window.EXPEDITION_DIFFICULTIES[s.difficulty])throw Error('Unknown difficulty');
- if(s.roster&&(!Array.isArray(s.roster)||s.roster.length>4||new Set(s.roster.map(h=>h.id)).size!==s.roster.length||!s.roster.every(h=>/^ranger(?:-[0-9]+)?$/.test(h.id)&&typeof h.name==='string')))throw Error('Invalid test roster');
+ if(s.roster&&(!Array.isArray(s.roster)||s.roster.length>50||new Set(s.roster.map(h=>h.id)).size!==s.roster.length||!s.roster.every(h=>/^(?:ranger|sororitas)(?:-[0-9]+)?$/.test(h.id)&&['ranger','sororitas'].includes(h.classId||'ranger')&&typeof h.name==='string')))throw Error('Invalid crew roster');
  if(s.run&&(!Array.isArray(s.run.party)||!s.run.party.length||s.run.party.length>4||!s.run.party.every(h=>typeof h.id==='string'&&Number.isFinite(h.hp)&&Number.isFinite(h.maxHp)&&h.maxHp>0)))throw Error('Invalid expedition');
  for(const [place,slots] of Object.entries(s.restSlots||{}))if(!['bar','temple','ship'].includes(place)||!Array.isArray(slots)||slots.length>3||!slots.every(x=>x===null||(typeof x.id==='string'&&Number.isSafeInteger(x.cost)&&x.cost>=0)))throw Error('Invalid rest assignments');
  if(s.heroProfiles&&(typeof s.heroProfiles!=='object'||Array.isArray(s.heroProfiles)))throw Error('Invalid crew profiles');

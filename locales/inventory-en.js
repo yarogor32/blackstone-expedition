@@ -27,7 +27,7 @@
     gross:'Cargo value before losses', retreatPenalty:'Fleeing penalty', net:'Banked this expedition',
     retreatRule:'Fleeing loses {percent}% of loot value. Both portals preserve all loot. Difficulty is locked for this expedition.',
     energy:'Energy', resume:'Resume Expedition',
-    medNote:'Dressings and antitoxin are reserved for future bleeding and poison encounters.',
+    medNote:'Dressings stop bleeding immediately. Select the wounded crew member before use.',
     foodEvent:'The crew needs provisions', feed:'Distribute rations', hungry:'Continue hungry',
     hungerCost:'Hungry biological crew lose 20% maximum HP (cannot reduce HP below 1).',
     obstacle:'Collapsed Passage', breach:'Use a breaching charge', force:'Clear by hand',

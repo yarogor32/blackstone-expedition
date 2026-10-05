@@ -23,6 +23,7 @@ body{overflow-x:hidden}
 .portal-card.available{cursor:pointer;border-color:#8cc7c4;box-shadow:inset 0 0 40px #21c4ce22}
 .portal-card.available:hover,.portal-card.available:focus{border-color:#e8c586;box-shadow:0 0 25px #26bdc688}
 .portal-card.unavailable{opacity:.45}.portal-mark{font-size:44px;color:#9df7f5;text-shadow:0 0 18px #3cf5f0}
+.building-scene[data-building="docks"] .building-panel{max-height:calc(100vh - 80px);overflow-x:hidden;overflow-y:auto}.dock-party{margin:16px 0 8px;padding:11px 12px;background:#071513e8;border:1px solid #7f6b45;box-shadow:inset 0 0 22px #102b244d}.dock-party header{display:flex;align-items:center;justify-content:space-between;gap:12px}.dock-party header strong{color:#e7c88f;font-size:15px}.dock-party header small{color:#a9bcb2;font:11px Arial,sans-serif}.dock-party-caption,.dock-roster-title{margin-top:5px;color:#82998f;font:9px Arial,sans-serif;text-transform:uppercase;letter-spacing:.12em}.dock-party-slots{display:flex;gap:8px;margin-top:7px}.dock-party-member{position:relative;width:58px;height:66px;padding:3px;border:1px solid #8d754a;background:#0d1d19;box-shadow:inset 0 0 8px #0008}.dock-party-member .crew-face{width:50px;height:58px}.dock-party-member>b{position:absolute;left:2px;top:2px;z-index:4;display:grid;place-items:center;width:15px;height:15px;background:#07100de8;border:1px solid #a88a55;color:#ebcf96;font:10px Arial}.dock-party-member>span:not(.crew-face){position:absolute;right:2px;top:-2px;z-index:4;color:#e7b08e;font:17px Arial;text-shadow:0 1px #000}.dock-party-member:hover,.dock-party-member:focus-visible{outline:1px solid #f0ca7e;outline-offset:2px;border-color:#f0ca7e}.dock-party-member.empty{display:grid;place-items:center;color:#75694f;font-size:24px;cursor:default;border-style:dashed}.dock-party-member.empty>span{position:static;color:#75694f;font-size:22px}.dock-party-member.empty:hover{outline:0;border-color:#8d754a}.dock-roster-title{margin-top:11px;border-top:1px solid #66563a;padding-top:8px}.dock-roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:6px}.dock-roster-entry{position:relative;min-width:0}.dock-roster-toggle{display:flex;align-items:center;gap:7px;width:100%;height:50px;padding:3px 25px 3px 3px;text-align:left;background:#0b1815;border:1px solid #4f5948}.dock-roster-toggle .crew-face{width:36px;height:42px}.dock-roster-toggle strong,.dock-roster-toggle small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dock-roster-toggle strong{font:11px Georgia;color:#dfc493}.dock-roster-toggle small{margin-top:4px;font:9px Arial;color:#95a79e}.dock-roster-entry.selected .dock-roster-toggle{border-color:#d1ad6a;background:#1a2b23}.dock-roster-entry.resting{opacity:.48}.dock-roster-info{position:absolute;right:3px;top:50%;translate:0 -50%;width:19px;height:24px;padding:0;border:1px solid #70603f;background:#10201b;color:#ccb27e;font:italic 12px Georgia}.dock-roster-info:hover,.dock-roster-info:focus-visible{border-color:#edca83;outline:0}.dock-roster-toggle:disabled{cursor:default}.dock-roster-toggle:hover:not(:disabled),.dock-roster-toggle:focus-visible{border-color:#e6c27a;outline:0}
 .mission{position:fixed;inset:0;overflow:hidden;background:#070b0d}
 .mission #deep{position:absolute;inset:0;z-index:10;background:url('corridor/repeat/blackstone_bg10_deepplanes_c_1024.png') repeat-x center/auto 100%}
 .mission .world{position:absolute;left:0;top:0;width:600vh;height:100vh;will-change:transform}
@@ -161,3 +162,27 @@ body{overflow-x:hidden}
 .combat-unit.targetable:hover::after,.combat-unit.targetable:focus-visible::after,.combat-unit.attack-target::after{opacity:1;background:linear-gradient(90deg,#793b27,#f99874,#793b27)}
 
 .portal-exit{position:absolute;z-index:75;width:54px;height:54px;transform:translate(-50%,-50%);display:grid;place-items:center;background:#0b211fea;border:1px solid #d1b373;color:#f1d99f;box-shadow:0 0 18px #56bfc34d;cursor:pointer}.portal-exit[hidden]{display:none}.portal-exit svg{width:36px;height:36px}.portal-exit:hover{background:#21443c;border-color:#ffe3a0;box-shadow:0 0 24px #56bfc38a}.portal-exit:focus-visible{outline:2px solid #ffe3a0;outline-offset:3px}
+
+.damage-number.morale-number{color:#d7a5ff;font-size:23px;text-shadow:0 2px 3px #000,0 0 12px #7427a8}
+
+/* Corridor depth: monumental rear masonry and floor-backed ceiling columns. */
+.mission #structures .span{left:-15vh;top:-35vh;width:190vh;filter:brightness(.55) saturate(.7)}
+.mission #structures .ribs{left:135vh;top:-28vh;width:100vh;filter:brightness(.48) saturate(.65)}
+.mission #structures .pylon{left:230vh;top:-32vh;width:95vh;filter:brightness(.56) saturate(.7)}
+.mission #structures .aperture{left:325vh;top:6vh;width:95vh;filter:brightness(.5) saturate(.7)}
+.mission #corridorColumns{z-index:50;pointer-events:none}
+.mission .stone-column{position:absolute;bottom:15vh;height:145vh;width:48vh;object-fit:fill;filter:brightness(.62) hue-rotate(-35deg)}
+
+/* Distant mountain-scale alien massifs, with electrical storms behind their silhouettes. */
+.mission #structures .mega-range{position:absolute;top:0;width:180vh;height:100vh;filter:brightness(.48) saturate(.5);pointer-events:none}
+.mission #distantLightning{position:absolute;inset:0;z-index:15;pointer-events:none;background:transparent}
+#distantLightning svg{width:100%;height:100%;overflow:visible}
+#distantLightning .far-bolt{fill:none;stroke:#bbeced;stroke-width:2;stroke-linejoin:bevel;opacity:0;filter:drop-shadow(0 0 9px #81d6e6);animation:distant-bolt 19s linear infinite}
+#distantLightning .bolt-b{animation-duration:27s;animation-delay:8s}
+#distantLightning:before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 35%,#8abcdc65,transparent 65%);opacity:0;animation:distant-glow 19s linear infinite}
+@keyframes distant-bolt{0%,73%,76%,78%,100%{opacity:0}73.4%{opacity:.65}74%{opacity:.15}74.7%{opacity:.5}75.5%{opacity:0}77%{opacity:.25}}
+@keyframes distant-glow{0%,73%,76%,100%{opacity:0}73.5%{opacity:.5}74.2%{opacity:.12}75%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){#distantLightning .far-bolt,#distantLightning:before{animation:none;opacity:0}}
+
+.mission .stone-column.stone-pier{width:64vh;height:125vh;filter:brightness(.62) hue-rotate(-45deg)}
+.mission .stone-column.stone-arch{width:165vh;height:108vh}
