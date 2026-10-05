@@ -168,6 +168,7 @@
   let missionReady = Promise.resolve();
   const tracks = {menu:'Black Fortress - main menu.mp3', hub:'Black Fortress - Hub Location.mp3', mission:'Black Fortress - Raid.mp3'};
   let page = 'menu';
+  let missionArea = 'corridor';
   let selectedHero = 0;
   let soundEnabled = true;
   let settingsOpen = false;
@@ -324,6 +325,8 @@
     await loadHubImage('backgrounds/mission-loading.png');
     // Paint the parchment before creating and decoding the corridor.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const layout=window.BlackstoneRooms?.ensureRun(inventory.run);
+    missionArea=layout?.current?.startsWith('room-')?'room':'corridor';
     page = 'mission';
     render();
     await missionReady;
@@ -566,9 +569,19 @@
   function renderPortals(){page='docks';renderBuilding('docks');}
 
   function renderMission() {
+    if(missionArea==='room'){renderRaidRoom();return;}
     app.innerHTML = `<section class="mission" id="mission"><div id="deep"></div><div id="distantLightning" aria-hidden="true"><svg viewBox="0 0 1600 1000" preserveAspectRatio="none"><g class="far-bolt bolt-a"><path d="M420 -20 L390 110 452 165 366 260 402 320 325 440 355 520 290 720 M366 260 L290 280 245 370 M402 320 L485 390 470 480"/></g><g class="far-bolt bolt-b"><path d="M1230 -20 L1170 100 1215 180 1120 290 1170 345 1060 490 1095 600 1020 820 M1120 290 L1030 320 990 430 M1170 345 L1270 420 1300 530"/></g></svg></div><div id="structures" class="world" aria-hidden="true"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:0vh;"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:180vh;transform:scaleX(-1);"><img class="mega-range" src="corridor/modules/bg20/blackstone-megastructure-range-v4.png" alt="" style="left:360vh;"></div><div id="fog"></div><div id="midground" class="world"><img class="module buttress" src="corridor/modules/bg40/blackstone_bg40_buttress_a.png" alt=""><img class="module overhang" src="corridor/modules/bg40/blackstone_bg40_overhang_b.png" alt=""><img class="module wallnode" src="corridor/modules/bg40/blackstone_bg40_wallnode_c.png" alt=""></div><div id="corridorColumns" class="world" aria-hidden="true"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:-25vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:80vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:270vh;"><img class="stone-column stone-arch" src="corridor/modules/bg40/blackstone-wide-arch-v1.png" alt="" style="left:355vh;transform:scaleX(-1);"><img class="stone-column stone-pier" src="corridor/modules/bg40/blackstone-wide-pier-v1.png" alt="" style="left:550vh;"></div><div id="playfield" class="world"></div><div id="endcaps" class="world"><img class="cap cap-left" src="corridor/corridor_caps/blackstone_corridor_cap_left_a_1024.png" alt=""><img class="cap cap-right" src="corridor/corridor_caps/blackstone_corridor_cap_right_b_1024.png" alt=""></div><canvas id="hero" aria-label="Aeldari Ranger in the corridor"></canvas><div id="foreground" class="world"><img class="frame frame-left" src="corridor/endpoint_obstacles/blackstone_foreground_edge_left_approved.png" alt=""><img class="frame frame-right" src="corridor/endpoint_obstacles/blackstone_foreground_edge_right_approved.png" alt=""></div><div class="mission-location">THE FIRST PASSAGE</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
     mountResourceHUD();
     missionReady = startMission();
+  }
+
+  function renderRaidRoom(){
+    const layout=window.BlackstoneRooms.ensureRun(inventory.run);
+    const room=window.BlackstoneRooms.getRoom(layout,layout.current)||window.BlackstoneRooms.getRoom(layout);
+    layout.current=room.id;room.visited=true;inventory.save();
+    app.innerHTML=`<section class="raid-room" id="mission" data-room-id="${escapeText(room.id)}">${window.BlackstoneRooms.renderLayers(room.variants)}<canvas id="hero" aria-label="Expedition party in a Blackstone chamber"></canvas><button type="button" class="room-exit left" data-room-exit="corridor" aria-label="Return to the corridor" title="Return to the corridor">${window.CombatUI.icon('exit')}</button><button type="button" class="room-exit right" data-room-exit="precipice" aria-label="Use the far portal" title="Return to Precipice · 10 energy">${window.CombatUI.icon('exit')}</button><div class="mission-location">BLACKSTONE CHAMBER · ${room.index+1}</div><div class="touch-controls"><button type="button" data-direction="left" aria-label="Move left">←</button><button type="button" data-direction="right" aria-label="Move right">→</button></div><div class="mission-fade" id="missionFade"></div></section>`;
+    mountResourceHUD();
+    missionReady=startRaidRoom(room);
   }
 
   function render() {
@@ -824,6 +837,53 @@
     }
   }
 
+  async function startRaidRoom(room){
+    const viewport=document.querySelector('#mission'),canvas=document.querySelector('#hero'),ctx=canvas.getContext('2d');
+    mission={viewport,canvas,ctx,room,roomX:inventory.run?.roomPosition??.34,facing:1,animation:'idle',animationTime:0,lastTime:0,entering:false};
+    keys.clear();
+    const exits=[...viewport.querySelectorAll('[data-room-exit]')];
+    for(const exit of exits)exit.addEventListener('click',()=>{
+      const state=mission;if(!state||state.entering||hubLoading||optionsOpen||mapOpen||supplies.isOpen)return;
+      const destination=exit.dataset.roomExit;
+      if(destination==='precipice'&&!payPortalEnergy())return;
+      state.entering=true;keys.clear();playEffect('teleportOut');document.querySelector('#missionFade')?.classList.add('active');
+      setTimeout(()=>{
+        if(mission!==state)return;
+        if(destination==='corridor'){
+          inventory.run.raidLayout.current='corridor-entry';inventory.run.progress=5.18;inventory.save();missionArea='corridor';mission=null;renderMission();
+        }else go('hub');
+      },650);
+    });
+    await Promise.all([sororitasIdleAtlas,idleAtlas,...viewport.querySelectorAll('img')].map(image=>image.decode?.().catch(()=>{})));
+    if(!mission||mission.canvas!==canvas)return;
+    function tick(now){
+      const state=mission;if(!state||state.canvas!==canvas||page!=='mission'||missionArea!=='room')return;
+      const dt=state.lastTime?Math.min(.05,(now-state.lastTime)/1000):0;state.lastTime=now;
+      const width=viewport.clientWidth,unit=viewport.clientHeight;
+      const blocked=hubLoading||optionsOpen||mapOpen||supplies.isOpen||document.querySelector('.character-dialog[open]');
+      const direction=blocked?0:Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft'));
+      if(!state.entering&&direction){state.roomX=clamp(state.roomX+direction*.24*dt,.08,.92);state.facing=direction;inventory.run.roomPosition=state.roomX;}
+      const animation=direction?'walk':'idle';if(state.animation!==animation){state.animation=animation;state.animationTime=0;}else state.animationTime+=dt;
+      const leftExit=exits.find(exit=>exit.dataset.roomExit==='corridor'),rightExit=exits.find(exit=>exit.dataset.roomExit==='precipice');
+      leftExit.hidden=state.roomX>.2||state.entering;rightExit.hidden=state.roomX<.8||state.entering;
+      const dpr=Math.min(devicePixelRatio||1,2);if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(unit*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(unit*dpr);canvas.style.width=width+'px';canvas.style.height=unit+'px';}
+      ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,unit);
+      const isWalk=state.animation==='walk',size=Math.min(unit*.48,410),footY=unit*(846/1024),screenX=width*state.roomX;
+      for(const [crewIndex,hero] of inventory.run.party.filter(h=>h.hp>0).sort((a,b)=>a.rank-b.rank).entries()){
+        const sister=hero.classId==='sororitas',image=sister?(isWalk?sororitasWalkAtlas:sororitasIdleAtlas):(isWalk?walkAtlas:idleAtlas);if(!image.complete||!image.naturalWidth)continue;
+        const count=sister?(isWalk?27:121):(isWalk?24:129),fps=sister?18:(isWalk?15.2145:17.28),frame=Math.floor(state.animationTime*fps)%count,sourceX=2+(frame%8)*516,sourceY=2+Math.floor(frame/8)*516;
+        const heroX=screenX-crewIndex*unit*.16;window.ExpeditionSpeech?.position(hero.id,heroX,footY-size*.69);
+        ctx.save();ctx.translate(heroX,footY);ctx.scale(state.facing,1);
+        if(sister){const scale=isWalk?331/502:331/507,side=size*scale,anchor=isWalk?268.5:285.5,foot=isWalk?505:511;ctx.drawImage(image,sourceX,sourceY,512,512,-anchor*side/512,-foot*side/512,side,side);}
+        else if(isWalk)ctx.drawImage(image,sourceX,sourceY,512,512,-size/2,-size*(468/512),size,size);
+        else window.drawRanger(ctx,image,'idle',state.animationTime,-size/2,-size*(468/512),size);
+        ctx.restore();
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
   async function startMission() {
     const viewport = document.querySelector('#mission');
     const canvas = document.querySelector('#hero');
@@ -831,13 +891,20 @@
     mission = {viewport, canvas, ctx, encounterDone:!!inventory.run?.encounterDone, x:innerHeight * (inventory.run?.progress??.48), facing:1, camera:0, animation:'idle', animationTime:0, lastTime:0, entering:false};
     keys.clear();
     mountPassageProps(viewport);
+    window.BlackstoneRooms?.ensureRun(inventory.run);
     const portalExits=['left','right'].map(side=>{
       const exit=document.createElement('button');exit.className='portal-exit';exit.dataset.portalExit=side;
       exit.innerHTML=window.CombatUI.icon('exit');exit.title='Return to Precipice · 10 energy';exit.setAttribute('aria-label',exit.title);exit.hidden=true;
       exit.addEventListener('click',()=>{
         const state=mission;if(!state)return;
         if(exit.disabled||state.entering||state.combat||hubLoading||optionsOpen||mapOpen||supplies.isOpen)return;
-        keys.clear();if(!payPortalEnergy())return;
+        keys.clear();
+        if(side==='right'){
+          state.entering=true;playEffect('teleportOut');document.querySelector('#missionFade').classList.add('active');
+          setTimeout(()=>{if(mission!==state)return;const layout=window.BlackstoneRooms.ensureRun(inventory.run);layout.current=layout.entry;inventory.run.progress=state.x/viewport.clientHeight;inventory.save();missionArea='room';mission=null;renderMission();playEffect('teleportIn');},650);
+          return;
+        }
+        if(!payPortalEnergy())return;
         state.entering=true;playEffect('teleportOut');document.querySelector('#missionFade').classList.add('active');
         setTimeout(()=>{if(mission===state)go('hub');},650);
       });viewport.append(exit);return exit;

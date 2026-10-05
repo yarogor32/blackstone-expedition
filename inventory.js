@@ -98,7 +98,7 @@
     begin(party){
       if(this.run)return this.run;
       party=party.filter(hero=>!this.resting(hero.id));if(!party.length)return null;
-      this.state.run={party:party.slice(0,4).map(u=>({maxHp:28,hp:28,food:1,energy:0,level:1,morale:100,maxMorale:100,foodDebt:this.state.foodDebt?.[u.id]||0,...this.state.heroProfiles[u.id],...clone(u)})),energy:100,progress:.48,visited:0,encounterDone:false,events:{},pendingLoot:[],defeated:false};
+      this.state.run={party:party.slice(0,4).map(u=>({maxHp:28,hp:28,food:1,energy:0,level:1,morale:100,maxMorale:100,foodDebt:this.state.foodDebt?.[u.id]||0,...this.state.heroProfiles[u.id],...clone(u)})),energy:100,progress:.48,visited:0,encounterDone:false,events:{},pendingLoot:[],defeated:false,raidLayout:window.BlackstoneRooms?.createRaidLayout()||null};
       this.run.difficulty=this.state.difficulty;
       this.save();return this.run;
     }

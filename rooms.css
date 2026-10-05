@@ -1,0 +1,26 @@
+:root{--room-floor-y:82.6171875vh;--room-design-width:177.7777778vh}
+.raid-room{position:fixed;inset:0;overflow:hidden;background:#05090b;isolation:isolate}
+.room-layer{position:absolute;inset:0;pointer-events:none}
+.room-stage-frame{position:absolute;z-index:20;left:50%;top:0;width:var(--room-design-width);height:100vh;translate:-50% 0;pointer-events:none}
+.room-deep{z-index:10;overflow:hidden;background:#05090c}
+.room-deep-texture{position:absolute;inset:0;background:url('corridor/repeat/blackstone_bg10_deepplanes_c_1024.png') repeat-x center/auto 100%;filter:brightness(.48) saturate(.7)}
+.room-deep-texture.deep-shift{background-position:31vh center;filter:brightness(.42) contrast(1.1) saturate(.6)}
+.room-deep-texture.deep-mirror{scale:-1 1;background-position:-19vh center;filter:brightness(.5) hue-rotate(-7deg) saturate(.65)}
+.room-deep-texture.deep-low{background-position:70vh 12%;background-size:auto 112%;filter:brightness(.38) contrast(1.16) saturate(.55)}
+.room-void{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 34%,#17323744 0 9%,#07101266 35%,#020507c7 87%)}
+.room-void-b{background:radial-gradient(ellipse at 30% 30%,#18353c55,transparent 34%),linear-gradient(90deg,#010304b8,transparent 34% 66%,#010304c8)}
+.room-void-c{background:radial-gradient(ellipse at 70% 28%,#173b444d,transparent 31%),linear-gradient(#02050722,#020507aa)}
+.room-void-d{background:radial-gradient(ellipse at 50% 20%,#28424a36,transparent 42%),linear-gradient(90deg,#010304b8,transparent 25% 75%,#010304b8)}
+.room-rear{z-index:20}.room-fog{z-index:30;background:url('corridor/atmosphere/blackstone_bg30_fog_a_1024.png') repeat-x center/auto 100%;opacity:.46}.room-middle{z-index:40}
+.room-rear img,.room-middle img{position:absolute;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none}
+.room-mega{top:1%;width:112vh;height:94vh!important;filter:brightness(.38) saturate(.55);object-fit:fill!important}.mega-left{left:-4vh}.mega-center{left:31vh;width:120vh;filter:brightness(.36) saturate(.5)}
+.room-bg-module{filter:brightness(.42) saturate(.58)}.rear-aperture{right:-4vh;top:4vh;width:92vh}.rear-aperture-left{left:-6vh;right:auto;scale:-1 1}.rear-span{left:-12vh;top:-27vh;width:122vh}.rear-span-right{left:auto;right:-20vh;top:-31vh;scale:-1 1}.rear-ribs{right:-9vh;top:-17vh;width:88vh}.rear-pylon{right:-5vh;top:-19vh;width:93vh}
+.room-mid-module{bottom:15vh;filter:brightness(.58) saturate(.75);transform-origin:center bottom}.mid-buttress{left:-9vh;width:71vh}.mid-buttress-right{left:auto;right:-16vh;scale:-1 1}.mid-wallnode{right:-7vh;width:67vh}.mid-arch{left:7vh;width:164vh;height:110vh!important;object-fit:fill!important}.mid-overhang{right:-8vh;top:-17vh;width:79vh}.mid-pier{width:59vh;height:126vh!important;object-fit:fill!important}.mid-pier-left{left:-8vh}.mid-pier-right{right:-8vh;scale:-1 1}.mid-asym{left:-5vh;width:63vh;height:116vh!important;object-fit:fill!important}
+.room-floor{z-index:60;top:var(--room-floor-y);overflow:hidden;background:#171c1d}.room-floor-texture{position:absolute;inset:-82.6171875vh 0 0;background:url('corridor/playfield/blackstone_playfield_floor_a_1024.png') repeat-x left bottom/100vh 100vh}.floor-b{background-position:37vh bottom;scale:-1 1;filter:brightness(.92)}.floor-c{background-position:-21vh bottom;filter:brightness(.84) contrast(1.12)}.floor-d{background-position:64vh bottom;scale:-1 1;filter:brightness(.8) contrast(1.18)}
+.room-floor-detail{position:absolute;left:0;right:0;top:0;height:4px;opacity:.8;background:linear-gradient(90deg,transparent 4%,#1cc3cd 4.2%,transparent 4.6% 45%,#176c75 45.3%,transparent 45.7%)}.floor-detail-b{background-position:27vw 0}.floor-detail-c{background:linear-gradient(90deg,transparent 21%,#1cc3cd 21.25%,transparent 21.7% 73%,#176c75 73.3%,transparent 73.7%)}.floor-detail-d{background:linear-gradient(90deg,transparent 12%,#176c75 12.2%,transparent 12.6% 88%,#1cc3cd 88.2%,transparent 88.7%)}
+.room-vignette{position:absolute;inset:0;z-index:75;pointer-events:none;background:linear-gradient(90deg,#000b,transparent 12% 88%,#000b),linear-gradient(#0008,transparent 22% 78%,#0005);box-shadow:inset 0 0 9vh #0008}
+.raid-room #hero{position:absolute;inset:0;z-index:70;pointer-events:none}
+.room-exit{position:absolute;z-index:90;top:58%;width:54px;height:54px;display:grid;place-items:center;translate:-50% -50%;background:#0b211fea;border:1px solid #d1b373;color:#f1d99f;box-shadow:0 0 18px #56bfc34d}.room-exit.left{left:max(38px,4vw)}.room-exit.right{left:min(calc(100% - 38px),96vw)}.room-exit svg{width:36px;height:36px}.room-exit:hover,.room-exit:focus-visible{background:#21443c;border-color:#ffe3a0;box-shadow:0 0 24px #56bfc38a;outline:none}
+.room-debug-safe{position:absolute;z-index:200;left:50%;top:0;width:min(100vw,var(--room-design-width));height:100vh;translate:-50% 0;pointer-events:none}
+@media(max-aspect-ratio:4/3){.room-stage-frame{left:50%}.room-vignette{background:linear-gradient(90deg,#0007,transparent 7% 93%,#0007),linear-gradient(#0008,transparent 22% 78%,#0005)}}
+@media(prefers-reduced-motion:reduce){.room-fog{opacity:.38}}
