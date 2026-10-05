@@ -77,10 +77,10 @@
     () => `${img('room-mid-module mid-asym','corridor/modules/bg40/blackstone-column-asymmetric-v2.png')}${img('room-mid-module mid-buttress mid-buttress-right','corridor/modules/bg40/blackstone_bg40_buttress_a.png')}`
   ];
   const ceiling = [
-    () => `${img('room-ceiling-module ceiling-span','corridor/modules/bg20/blackstone_bg20_span_b.png')}`,
-    () => `${img('room-ceiling-module ceiling-ribs','corridor/modules/bg20/blackstone_bg20_ribs_d.png')}${img('room-ceiling-module ceiling-overhang','corridor/modules/bg40/blackstone_bg40_overhang_b.png')}`,
-    () => `${img('room-ceiling-module ceiling-arch','corridor/modules/bg40/blackstone-wide-arch-v1.png')}`,
-    () => `${img('room-ceiling-module ceiling-left','corridor/modules/bg40/blackstone-column-asymmetric-v2.png')}${img('room-ceiling-module ceiling-right','corridor/modules/bg40/blackstone-column-asymmetric-v2.png')}`
+    () => `<div class="ceiling-built ceiling-lintel"><i class="ceiling-mass mass-left"></i><i class="ceiling-mass mass-right"></i><i class="ceiling-mass mass-center"></i><b class="ceiling-inlay inlay-left"></b><b class="ceiling-inlay inlay-right"></b></div>`,
+    () => `<div class="ceiling-built ceiling-vault"><i class="ceiling-mass vault-left"></i><i class="ceiling-mass vault-right"></i><i class="ceiling-mass vault-key"></i><b class="ceiling-inlay vault-light-left"></b><b class="ceiling-inlay vault-light-right"></b></div>`,
+    () => `<div class="ceiling-built ceiling-coffer"><i class="ceiling-mass coffer-rail"></i><i class="ceiling-mass coffer-a"></i><i class="ceiling-mass coffer-b"></i><i class="ceiling-mass coffer-c"></i><b class="ceiling-inlay coffer-light-a"></b><b class="ceiling-inlay coffer-light-b"></b><b class="ceiling-inlay coffer-light-c"></b></div>`,
+    () => `<div class="ceiling-built ceiling-broken"><i class="ceiling-mass broken-left-a"></i><i class="ceiling-mass broken-left-b"></i><i class="ceiling-mass broken-right-a"></i><i class="ceiling-mass broken-right-b"></i><b class="ceiling-inlay broken-light-left"></b><b class="ceiling-inlay broken-light-right"></b></div>`
   ];
   const floor = [
     () => `<div class="room-floor-texture floor-a"></div><div class="room-floor-detail floor-detail-a"></div>`,
