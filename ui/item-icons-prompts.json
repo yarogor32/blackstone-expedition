@@ -1,0 +1,35 @@
+{
+  "tool": "built-in image_gen",
+  "assets": [
+    {
+      "id": "cutter",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-f026ad09-d5fe-4060-9a30-a6f90fb91374.png",
+      "file": "ui/item-cutter-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: one transparent inventory item icon for Blackstone Expedition. Subject: a compact rectangular military breaching explosive charge, dark olive iron housing, a strapped tan explosive block, short coiled detonator lead and small bronze timer; clear chunky silhouette. Reference image is STYLE REFERENCE ONLY: match the hand-drawn bottom-row ration packet and power cell with heavy dark ink contours, angular painted shadows, restrained weathered parchment/brass/charcoal/teal colors. One isolated physical object, three-quarter view, centered, occupies about 80% of square canvas with clear margins. Drawn dark fantasy game illustration, emphatically not photorealism or 3D rendering, not a thin line symbol. Bold readable silhouette at 48 pixels. No frame, no lettering, no background, no ground or cast shadow outside the object. Genuine transparent alpha background."
+    },
+    {
+      "id": "key",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-c5beeb96-2396-4235-b4ef-aa92a4c74969.png",
+      "file": "ui/item-key-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: one transparent inventory item icon for Blackstone Expedition. Subject: a physical gothic cipher key device, bronze ring handle and thick mechanical toothed shaft, small dark teal inset; recognizable as a key. Reference image is STYLE REFERENCE ONLY: match the hand-drawn bottom-row ration packet and power cell with heavy dark ink contours, angular painted shadows, restrained weathered parchment/brass/charcoal/teal colors. One isolated physical object, three-quarter view, centered, occupies about 80% of square canvas with clear margins. Drawn dark fantasy game illustration, emphatically not photorealism or 3D rendering, not a thin line symbol. Bold readable silhouette at 48 pixels. No frame, no lettering, no background, no ground or cast shadow outside the object. Genuine transparent alpha background."
+    },
+    {
+      "id": "bandage",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-05756b20-1a48-4e0e-abd3-3c0a21b93479.png",
+      "file": "ui/item-bandage-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: one transparent inventory item icon for Blackstone Expedition. Subject: a wrapped roll of off-white haemostatic gauze with a folded dressing packet, dark leather retaining strap and small crimson medical seal. Reference image is STYLE REFERENCE ONLY: match the hand-drawn bottom-row ration packet and power cell with heavy dark ink contours, angular painted shadows, restrained weathered parchment/brass/charcoal/teal colors. One isolated physical object, three-quarter view, centered, occupies about 80% of square canvas with clear margins. Drawn dark fantasy game illustration, emphatically not photorealism or 3D rendering, not a thin line symbol. Bold readable silhouette at 48 pixels. No frame, no lettering, no background, no ground or cast shadow outside the object. Genuine transparent alpha background."
+    },
+    {
+      "id": "antidote",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-f1613b02-4f62-47d1-9bd0-eae7954331e3.png",
+      "file": "ui/item-antidote-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: one transparent inventory item icon for Blackstone Expedition. Subject: a squat dark green glass antitoxin medicine vial with bronze protective bands and stopper, aged ivory label carrying only a small red medical cross. Reference image is STYLE REFERENCE ONLY: match the hand-drawn bottom-row ration packet and power cell with heavy dark ink contours, angular painted shadows, restrained weathered parchment/brass/charcoal/teal colors. One isolated physical object, three-quarter view, centered, occupies about 80% of square canvas with clear margins. Drawn dark fantasy game illustration, emphatically not photorealism or 3D rendering, not a thin line symbol. Bold readable silhouette at 48 pixels. No frame, no lettering, no background, no ground or cast shadow outside the object. Genuine transparent alpha background."
+    },
+    {
+      "id": "relic",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-944ab817-6a3c-40af-992b-4ebb26d88e2a.png",
+      "file": "ui/item-relic-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: one transparent inventory item icon for Blackstone Expedition. Subject: a mysterious small alien relic: angular dark iron and weathered bronze diamond-shaped artifact with a dim teal crystal inset, tangible carved object. Reference image is STYLE REFERENCE ONLY: match the hand-drawn bottom-row ration packet and power cell with heavy dark ink contours, angular painted shadows, restrained weathered parchment/brass/charcoal/teal colors. One isolated physical object, three-quarter view, centered, occupies about 80% of square canvas with clear margins. Drawn dark fantasy game illustration, emphatically not photorealism or 3D rendering, not a thin line symbol. Bold readable silhouette at 48 pixels. No frame, no lettering, no background, no ground or cast shadow outside the object. Genuine transparent alpha background."
+    }
+  ]
+}

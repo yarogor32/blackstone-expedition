@@ -1,0 +1,2 @@
+Built-in image generation edit. Source: temple.png. Output: temple-v2.png.
+Outpaint the priest on a wider transparent canvas. Complete the missing viewer-left elbow and ivory sleeve with a natural curved outer silhouette and visible transparent margin. Preserve identity, pose, red book, hands, burgundy and gold vestments, inked illustrated style. No scene or background.

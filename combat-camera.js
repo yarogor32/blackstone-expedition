@@ -19,7 +19,7 @@
    const side=units.filter(u=>ids.includes(u.id)&&u.side===unit.side).sort((a,b)=>unit.side==='party'?b.rank-a.rank:a.rank-b.rank);
    const index=side.findIndex(u=>u.id===unit.id),count=side.length;
    const direction=layout.travelDirection<0?-1:1;
-   const center=width*(unit.side==='party'?(direction>0?.34:.67):(direction>0?.67:.34));
+   const center=width*(unit.side==='party'?(direction>0?.34:.66):(direction>0?.66:.34));
    const spacing=Math.min(width*.12,baseSize*.40);
    const visualRank=unit.visualRank??unit.rank;const meanRank=count?side.reduce((n,u)=>n+(u.visualRank??u.rank),0)/count:visualRank;
    const goal=participant?center+(visualRank-meanRank)*(unit.side==='party'?-direction:direction)*spacing:baseX+(unit.side==='party'?-direction:direction)*width*.035;

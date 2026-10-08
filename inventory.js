@@ -16,6 +16,7 @@
       this.state.heroProfiles=this.state.heroProfiles||{};
       this.state.restSlots ||= {bar:[],temple:[],ship:[]};
       this.state.buildingLevels ||= {};
+      window.FortressCampaign?.ensure(this.state);
       for(const hero of this.run?.party||[]){hero.level??=1;hero.morale??=100;hero.maxMorale??=100;}
     }
     save(){try{this.storage?.setItem(KEY,JSON.stringify(this.state));}catch(_){this.saveFailed=true;}}
@@ -98,8 +99,13 @@
     begin(party){
       if(this.run)return this.run;
       party=party.filter(hero=>!this.resting(hero.id));if(!party.length)return null;
-      this.state.run={party:party.slice(0,4).map(u=>({maxHp:28,hp:28,food:1,energy:0,level:1,morale:100,maxMorale:100,foodDebt:this.state.foodDebt?.[u.id]||0,...this.state.heroProfiles[u.id],...clone(u)})),energy:100,progress:.48,visited:0,objective:'find-exit-portal',exitFound:false,completed:false,battles:{},events:{},pendingLoot:[],defeated:false,raidLayout:window.BlackstoneRooms?.createRaidLayout()||null};
+      this.state.run={party:party.slice(0,4).map(u=>({maxHp:28,hp:28,food:1,energy:0,level:1,morale:100,maxMorale:100,foodDebt:this.state.foodDebt?.[u.id]||0,...this.state.heroProfiles[u.id],...clone(u)})),energy:100,hunger:0,hungerRateVersion:2,progress:.48,visited:0,objective:'find-exit-portal',exitFound:false,completed:false,battles:{},events:{},pendingLoot:[],defeated:false,raidLayout:window.BlackstoneRooms?.createRaidLayout()||null};
       this.run.difficulty=this.state.difficulty;
+      this.run.campaignTarget=window.FortressCampaign?.target(this.state);
+      if(this.run.campaignTarget?.kind==='control-center'){
+        this.run.objective='reach-control-center';
+        this.run.raidLayout=window.BlackstoneRooms.createRaidLayout(this.state.fortressProgress.controlRouteSeed||'fortress-command');
+      }
       this.save();return this.run;
     }
     recordDeaths(party){
@@ -115,11 +121,12 @@
     }
     finish(defeated=false,{fled=false}={}){
       if(!this.run)return null;
-      const cargo=this.slots.filter(Boolean).map(s=>({...s,value:s.qty*ITEMS[s.id].sell}));
+      const campaignProgress=window.FortressCampaign?.complete(this.state,this.run,{defeated,fled});
+      const cargo=this.slots.filter(Boolean).map(s=>({...s,value:s.qty*ITEMS[s.id].sell,retained:ITEMS[s.id].kind!=='loot'}));
       const difficulty=this.run.difficulty;
       const lossRate=fled&&!defeated?window.EXPEDITION_DIFFICULTIES[difficulty].retreatLoss:0;
-      const gross=cargo.reduce((n,s)=>n+s.value,0);
-      const lootValue=cargo.filter(s=>ITEMS[s.id].kind==='loot').reduce((n,s)=>n+s.value,0);
+      const lootValue=cargo.filter(s=>!s.retained).reduce((n,s)=>n+s.value,0);
+      const gross=lootValue;
       const penalty=Math.ceil(lootValue*lossRate);
       const earned=defeated?0:gross-penalty;
       const moralePenalty=fled&&!defeated?10:0;
@@ -130,8 +137,8 @@
       const fallen=this.recordDeaths(this.run.party);
       this.state.foodDebt=Object.fromEntries(this.run.party.filter(h=>h.hp>0).map(u=>[u.id,u.foodDebt||0]));
       for(const hero of this.run.party.filter(h=>h.hp>0))this.state.heroProfiles[hero.id]={level:hero.level,morale:hero.morale,maxMorale:hero.maxMorale,affliction:hero.affliction||null,afflictions:hero.afflictions||[],positiveTraits:hero.positiveTraits||[]};
-      this.completeRest();this.state.recruitStock=Math.max(this.state.roster?.length?0:1,Math.floor(Math.random()*4));this.state.credits+=earned;this.state.run=null;this.state.slots=Array(16).fill(null);this.save();
-      return {moralePenalty,fallen,defeated,fled:fled&&!defeated,difficulty,lossRate,penalty,gross,lootValue,cargo,earned,balance:this.state.credits};
+      this.completeRest();this.state.recruitStock=Math.max(this.state.roster?.length?0:1,Math.floor(Math.random()*4));this.state.credits+=earned;this.state.run=null;this.state.slots=this.slots.map(stack=>stack&&ITEMS[stack.id].kind==='loot'?null:stack);this.save();
+      return {campaignProgress,moralePenalty,fallen,defeated,fled:fled&&!defeated,difficulty,lossRate,penalty,gross,lootValue,cargo,earned,balance:this.state.credits};
     }
     use(id,heroId,{combat=false}={}){
       if(!this.run||!this.count(id))return 'noEffect';

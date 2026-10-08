@@ -5,17 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#070b0d">
   <title>Blackstone Expedition — Mission Playtest</title>
-  <link rel="preload" as="image" href="backgrounds/hub-loading.png">
+  <link rel="preload" as="image" href="backgrounds/hub-loading-v2.png">
   <link rel="preload" as="image" href="backgrounds/mission-loading.png">
   <link rel="preload" as="image" href="branding/victory.png">
+  <link rel="preload" as="image" href="branding/mission-complete.png">
   <link rel="preload" as="image" href="branding/party-lost.png">
-  <link rel="stylesheet" href="style.css?v=platform-click-154">
-  <link rel="stylesheet" href="inventory.css?v=pier-cyan-107">
-  <link rel="stylesheet" href="game-hud.css?v=raid-nav-fix-146">
+  <link rel="stylesheet" href="style.css?v=loading-fortress-5">
+  <link rel="stylesheet" href="inventory.css?v=blackstone-ui-161">
+  <link rel="stylesheet" href="game-hud.css?v=room-hud-anchor-175">
   <link rel="stylesheet" href="combat-ui.css?v=flamer-fx-127">
   <link rel="stylesheet" href="rooms.css?v=ferrofluid-lift-145">
+  <link rel="stylesheet" href="physical-ui.css?v=physical-ui-165">
   <link rel="preload" as="image" href="branding/your-turn.svg">
   <link rel="preload" as="image" href="branding/enemy-turn.svg">
+  <link rel="stylesheet" href="docks.css?v=deployment-plate-4">
+  <link rel="stylesheet" href="hub-desk.css?v=shrine-tooltip-40">
+  <link rel="stylesheet" href="menu-layout.css?v=battle-intro-raised-47">
 </head>
 <body>
   <main id="app"></main>
@@ -23,13 +28,14 @@
   <script src="hub/scene.js?v=scene-v2-12"></script>
   <script src="locales/en.js?v=pier-cyan-107"></script>
   <script src="items.js?v=flamer-fx-127"></script>
-  <script src="room-system.js?v=raid-mission-153"></script>
-  <script src="locales/inventory-en.js?v=bleeding-110"></script>
-  <script src="inventory.js?v=raid-mission-153"></script>
+  <script src="room-system.js?v=random-passage-props-182"></script>
+  <script src="locales/inventory-en.js?v=persistent-inventory-181"></script>
+  <script src="fortress-campaign.js?v=inline-progress-1"></script>
+  <script src="inventory.js?v=campaign-chart-1"></script>
   <script src="locales/trade-en.js?v=pier-cyan-107"></script>
   <script src="campaign-saves.js?v=flamer-fx-127"></script>
   <script src="locales/return-en.js?v=pier-cyan-107"></script>
-  <script src="inventory-ui.js?v=combat-bandage-157"></script>
+  <script src="inventory-ui.js?v=painted-items-2"></script>
   <script src="combat-ui.js?v=raid-loop-143"></script>
   <script src="morale.js?v=pier-cyan-107"></script>
   <script src="locales/recruit-en.js?v=pier-cyan-107"></script>
@@ -37,8 +43,8 @@
   <script src="expedition-speech.js?v=pier-cyan-107"></script>
   <script src="character-effects.js?v=pier-cyan-107"></script>
   <script src="combat-camera.js?v=reverse-combat-155"></script>
-<script src="combat.js?v=reverse-flamer-156"></script>
-  <script src="game-hud.js?v=flamer-fx-127"></script>
-  <script src="app.js?v=combat-bandage-157"></script>
+<script src="battle-intro.js?v=sequence-2"></script><script src="combat.js?v=battle-start-9"></script>
+  <script src="game-hud.js?v=desk-hub-4"></script>
+  <script src="menu-depth.js?v=nebula-debris-5"></script><script src="hub-title.js?v=loading-3"></script><script src="app.js?v=dock-hitbox-13"></script>
 </body>
 </html>

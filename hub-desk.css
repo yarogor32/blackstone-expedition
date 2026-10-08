@@ -1,0 +1,34 @@
+@font-face{font-family:'Expedition Gothic Readable';src:url('fonts/Grenze-Variable.ttf') format('truetype');font-display:swap;font-weight:100 900;font-style:normal}
+:root{--ui-title:'Expedition Gothic Readable',Georgia,serif}
+h1,h2,.building-panel h2,.inventory-dialog h2,.location-map-dialog h2,.campaign-slot h3,.dock-screen-header h1,.manifest-content h2,.dock-chart-screen h2{font-family:var(--ui-title)!important;font-weight:400!important;text-transform:none!important;letter-spacing:.015em!important}
+/* Small labels and action text retain their readable book type. */
+.btn,.combat-action,.expedition-icon{font-family:Georgia,serif!important}.dock-next.btn{font-family:var(--ui-title)!important;text-transform:none!important;font-weight:400!important;font-size:28px!important}
+.hub-layout{background-color:#151919!important;background-image:linear-gradient(#09100f55,#09100f55),url('backgrounds/rogue-trader-desk-illustrated-v2.png')!important;background-size:cover!important;background-position:center!important;background-blend-mode:normal,luminosity!important}
+.hub-layout:before,.hub-layout:after{display:none}
+@media(min-width:601px){
+.hub-layout{--hub-rail:280px}
+.hub-layout .map{left:18px;top:18px;width:min(calc(100vw - 330px),calc((100dvh - 110px)*1.7778));transform:none;translate:none}
+.hub-layout>.map-label{left:34px;top:34px;width:210px;min-height:96px;pointer-events:none;opacity:.96}
+.hub-layout>.hub-roster{right:18px;top:18px;width:280px;max-height:calc(100dvh - 114px);overflow:auto!important;background:#09100eeb!important;padding:9px!important;border:1px solid #8c7043!important;box-shadow:0 8px 18px #0008!important}
+.hub-title-plaque strong{font:400 36px/1.1 var(--ui-title)!important;text-transform:none;letter-spacing:.01em}
+.hub-roster-header strong{font:400 27px/1.1 var(--ui-title)!important;letter-spacing:.01em;text-transform:none}
+.hub-layout .hub-roster-member{min-height:80px}.hub-layout .hub-roster-member strong{font:15px/1.25 Georgia,serif!important}.hub-layout .hub-roster-member span:not(.crew-face){font-size:9px!important;letter-spacing:.06em!important}.hub-layout .hub-roster footer{font-size:9px}
+.hub-layout .map-tip span{font-size:11px}.hub-layout .map-tip small{font-size:8px}
+}
+@media(min-width:601px) and (max-width:1100px){.hub-layout{--hub-rail:220px}.hub-layout .map{width:min(calc(100vw - 270px),calc((100dvh - 110px)*1.7778))}.hub-layout>.hub-roster{width:220px}.hub-layout>.map-label{width:180px;min-height:90px}.hub-layout .hub-roster-member strong{font-size:12px!important}.hub-title-plaque strong{font-size:30px!important}}
+@media(min-width:601px){.hub-map-window{position:absolute;left:18px;right:316px;top:18px;bottom:92px;overflow:hidden;container-type:size;border:1px solid #816640;box-shadow:0 8px 20px #0009}.hub-layout .hub-map-window .map{left:50%;top:50%;width:max(100cqw,177.778cqh);transform:translate(-50%,-50%);border:0;box-shadow:none}.hub-layout .hub-map-window .map-tip{position:absolute;right:max(14px,calc((100% - 100cqw)/2 + 14px));bottom:max(12px,calc((100% - 100cqh)/2 + 12px))}}
+@media(min-width:601px) and (max-width:1100px){.hub-map-window{right:256px}}
+@media(max-width:600px){.hub-map-window{display:contents}}
+
+
+.hub-sprite.landmark .building-label{display:none;flex-direction:column;gap:2px;left:var(--label-left,0%);top:0;bottom:auto;max-width:360px;padding:7px 12px 10px;border:0;background:linear-gradient(90deg,#030605ed,#030605bd 80%,transparent);box-shadow:none;text-align:left;white-space:normal;text-shadow:0 2px 3px #000,0 0 5px #000;pointer-events:none}
+.hub-sprite.landmark .building-label strong{display:block;color:#e8cd8d;font:600 clamp(25px,2.1vw,34px)/1.05 var(--ui-title,Georgia);white-space:nowrap}
+.hub-sprite.landmark .building-label small{display:block;color:#eee6d0;font:clamp(13px,1vw,16px)/1.25 Arial,sans-serif;white-space:nowrap}
+.hub-sprite.landmark:hover .building-label,.hub-sprite.landmark:focus-visible .building-label,.hub-sprite.landmark.hub-selected .building-label{display:flex}
+.hub-entering{pointer-events:none;will-change:transform}
+.hub-entering .landmark:not(.hub-selected) .building-label{display:none!important}
+.hub-entering .hub-selected{outline:0!important;box-shadow:none!important}
+.hub-sprite.landmark:hover,.hub-sprite.landmark:focus-visible{outline:0!important;box-shadow:none!important}
+.hub-sprite.landmark:focus-visible .building-label{border-left:2px solid #e8cd8d}
+.hub-sprite.landmark[data-action="temple"] .building-label{top:100%;margin-top:8px}
+.hub-transition-fade{position:fixed;inset:0;z-index:2500;background:#000;opacity:0;pointer-events:auto}

@@ -3,3 +3,6 @@ assets/animations/
 
 # Editable lossless sources; the game loads the WebP runtime copies.
 sprites/*.png
+
+# Runtime battle opening animation.
+!sprites/battle-start-v1.png

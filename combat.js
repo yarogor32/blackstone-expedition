@@ -177,7 +177,7 @@ window.drawSororitas=(ctx,image,kind,time,x,y,size)=>{
 window.combatImages={};
 for(const [id,path] of Object.entries({ranger:'ranger-idle-game.webp',attack:'ranger-shoot-game.webp',blade:'ranger-dagger-game.webp',hit:'ranger-hit-game.webp',stress:'ranger-low-morale2-game.webp',confidence:'ranger-confidence-game.webp',sororitas:'sororitas-idle-game.webp','sororitas-attack':'sororitas-shoot-game.webp','sororitas-melee':'sororitas-melee-game.webp','sororitas-pray':'sororitas-pray-game.webp','sororitas-hit':'sororitas-hit-game.webp','sororitas-stress':'sororitas-stress-game.webp','sororitas-confidence':'sororitas-confidence-game.webp',raider:'hormagaunt-melee.webp',psyker:'zoanthrope-psyker.webp',gunner:'termagant-ranged.webp'})){const image=new Image();image.decoding='async';image.src='sprites/'+path;window.combatImages[id]=image;}
 let combatWarmup;
-window.warmCombatImages=()=>combatWarmup ||= Object.values(window.combatImages).reduce((promise,image)=>promise.then(()=>image.decode?.().catch(()=>{})),Promise.resolve());
+window.warmCombatImages=()=>combatWarmup ||= Object.values(window.combatImages).reduce((promise,image)=>promise.then(()=>image.decode?.().catch(()=>{})),window.BattleIntro.warm().catch(()=>{}));
 window.BlackstoneBattle=Battle;
 window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,getLayout,onHit,onAttack,onDefeat,onVictory,onInventory,onPartyChange,onFlee,onCameraSide,onStressFocus,onActionFocus,onBreakdown})=>{
  const battle=new Battle(party,Math.random,snapshot);let skills=skillsFor(battle.living('party')[0]),selected=skills[0].id,timer,closed=false,preparingAttack=false,attackId=null,attackTargetId=null,attackTargetIds=[],attackSkill=null,pairUntil=0,attackUntil=0,attackStarted=0,busyUntil=performance.now()+1200,victoryShown=false,defeatAnnounced=false;const camera=new window.CombatCamera();const appearedAt=performance.now();const deaths=new Map();const reactions=new Map();const stressReactions=new Map();const characterEffects=new window.CharacterEffects();const floatingText=new Map();const idleStarts=new Map();const previousPoses=new Map();let focusedId=null;const focusScales=new Map();const rankMotion=new Map();let previousDrawTime=performance.now();const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -261,6 +261,7 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
   },shooting?(skill==='flamer'?900:1300):skill==='blade'||skill==='maul'?420:skill==='pray'?650:200);
  }
  const root=document.createElement('section');root.className='battle-overlay';root.setAttribute('aria-label','Combat');document.querySelector('#mission').append(root);
+ const stopIntro=snapshot?()=>{}:window.BattleIntro.play(document.querySelector('#mission'));
  function chooseSkill(id){
   skills=skillsFor(battle.active);
   const active=battle.active,skill=skills.find(s=>s.id===id);
@@ -282,12 +283,12 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
   if(closed)return;
   if(battle.result==='victory' && performance.now()>=busyUntil){
    if(victoryShown)return;
-   victoryShown=true;clearTimeout(timer);hideTurnNotice();onVictory?.();
+   victoryShown=true;stopIntro();clearTimeout(timer);hideTurnNotice();onVictory?.();
    root.querySelector('.combat-console')?.remove();
    
    const banner=document.createElement('div');banner.className='victory-banner';banner.setAttribute('role','status');
    banner.innerHTML='<img src="branding/victory.png" alt="Victory">';root.append(banner);
-   timer=setTimeout(()=>{closed=true;removeEventListener('keydown',onHotkey);camera.clear();onActionFocus?.(0);root.remove();onFinish('victory');},1450);
+   timer=setTimeout(()=>{closed=true;stopIntro();removeEventListener('keydown',onHotkey);camera.clear();onActionFocus?.(0);root.remove();onFinish('victory');},1450);
    return;
   }
   const active=battle.active;skills=skillsFor(active?.side==='party'?active:battle.living('party')[0]);if(!skills.some(s=>s.id===selected))selected=skills[0].id;const busy=preparingAttack||performance.now()<busyUntil;const player=!busy&&!battle.result&&active.side==='party';const skill=skills.find(s=>s.id===selected);
@@ -296,11 +297,11 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
    const valid=player&&skill.from.includes(active.rank)&&battle.targets(skill).includes(u);
    return `<button class="combat-unit ${u?.id===active.id?'active':''} ${valid?'targetable':''} ${u?.hp===0?'corpse':''}" data-side="${side}" data-target="${u?.id||''}" aria-label="${u?.name||'Empty rank'}" ${valid?'':'disabled'}>${u?`<canvas class="combat-sprite" width="512" height="512" data-unit="${u.id}" aria-label="${u.name}"></canvas>${u.bleed?.turns?`<div class="bleed-status" title="Bleeding: ${u.bleed.damage} damage for ${u.bleed.turns} turns" aria-label="Bleeding"><svg viewBox="0 0 24 30" aria-hidden="true"><path d="M12 1C9 7 3 13 3 19a9 9 0 0 0 18 0C21 13 15 7 12 1Z"/></svg><b>${u.bleed.turns}</b></div>`:''}${u.stunned?.turns?`<div class="stun-status" title="Stunned: loses the next turn" aria-label="Stunned"><span>✦</span><b>${u.stunned.turns}</b></div>`:''}${side==='enemy'?`<meter class="enemy-health" aria-label="${u.name} health" min="0" max="${u.maxHp}" value="${u.hp}"></meter>`:''}`:''}</button>`;
   }).join('');
-  root.innerHTML=`<header hidden class="combat-controls-proxy"><strong>THE FIRST PASSAGE · ROUND ${battle.round}</strong><div>${onFlee?`<button class="btn small" data-cmd="flee" ${busy||battle.result?'disabled':''}>Flee · −${window.EXPEDITION_DIFFICULTIES[window.Supplies.inventory.run.difficulty].retreatLoss*100}% Loot</button> `:''}<button class="btn small" data-cmd="inventory" ${player?'':'disabled'}>Inventory</button> <button class="btn small" data-cmd="options">Options</button></div></header><div class="combat-ranks"><div>${ranks('party')}</div><span class="combat-versus">⚔</span><div>${ranks('enemy')}</div></div><div class="combat-console">${battle.result&&!busy?`<p>Your expedition ends here. Return to Precipice to try again.</p><button class="btn" data-cmd="finish">Return to Precipice</button>`:window.CombatUI.dashboard(skills,selected,player,active)}<ol class="combat-log" aria-live="polite">${battle.log.slice(-4).map(l=>`<li>${l}</li>`).join('')}</ol></div>`;
+  root.innerHTML=`<header hidden class="combat-controls-proxy"><strong>THE FIRST PASSAGE · ROUND ${battle.round}</strong><div>${onFlee?`<button class="btn small" data-cmd="flee" ${busy||battle.result?'disabled':''}>Flee · −${window.EXPEDITION_DIFFICULTIES[window.Supplies.inventory.run.difficulty].retreatLoss*100}% Loot</button> `:''}<button class="btn small" data-cmd="inventory" ${player?'':'disabled'}>Inventory</button> <button class="btn small" data-cmd="options">Options</button></div></header><div class="combat-ranks"><div>${ranks('party')}</div><div>${ranks('enemy')}</div></div><div class="combat-console">${battle.result&&!busy?`<p>Your expedition ends here. Return to Precipice to try again.</p><button class="btn" data-cmd="finish">Return to Precipice</button>`:window.CombatUI.dashboard(skills,selected,player,active)}<ol class="combat-log" aria-live="polite">${battle.log.slice(-4).map(l=>`<li>${l}</li>`).join('')}</ol></div>`;
   updateInfo();
   for(const action of ['flee','inventory']){const nav=document.querySelector(`.expedition-tabs [data-action="${action}"]`);if(nav)nav.disabled=action==='inventory'?!player:busy||!!battle.result;}
   if(!busy&&!battle.result)announceTurn(active);
-  if(battle.result==='defeat'&&!busy){if(!defeatAnnounced){defeatAnnounced=true;hideTurnNotice();onDefeat?.();}const banner=document.createElement('div');banner.className='defeat-banner';banner.setAttribute('role','status');banner.innerHTML='<img src="branding/party-lost.png" alt="Party Lost">';root.append(banner);root.querySelector('.combat-console h2')?.remove();}
+  if(battle.result==='defeat'&&!busy){if(!defeatAnnounced){defeatAnnounced=true;stopIntro();hideTurnNotice();onDefeat?.();}const banner=document.createElement('div');banner.className='defeat-banner';banner.setAttribute('role','status');banner.innerHTML='<img src="branding/party-lost.png" alt="Party Lost">';root.append(banner);root.querySelector('.combat-console h2')?.remove();}
   clearTimeout(timer);
   if(busy)timer=setTimeout(render,Math.max(20,busyUntil-performance.now()+20));
   else if(!battle.result&&!player)timer=setTimeout(()=>{if(document.querySelector('.options-dialog[open],.inventory-dialog[open],.location-map-dialog[open],.character-dialog[open]')){render();return;}resolve(()=>battle.enemy());},1000);
@@ -321,7 +322,7 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
    }
    onPartyChange?.(battle.units.filter(u=>u.side==='party'));onCheckpoint?.(battle.snapshot());render();
   });
-  else if(b.dataset.cmd==='finish'){closed=true;removeEventListener('keydown',onHotkey);clearTimeout(timer);hideTurnNotice();camera.clear();onActionFocus?.(0);root.remove();onFinish(battle.result);}
+  else if(b.dataset.cmd==='finish'){closed=true;stopIntro();removeEventListener('keydown',onHotkey);clearTimeout(timer);hideTurnNotice();camera.clear();onActionFocus?.(0);root.remove();onFinish(battle.result);}
   else if(['forward','back','wait'].includes(b.dataset.cmd)){
    const c=b.dataset.cmd;inspected=c;
    const action=c==='forward'?`move:${battle.active.rank-1}`:c==='back'?`move:${battle.active.rank+1}`:'wait';
@@ -365,6 +366,7 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
  }
  function draw(now){
   if(closed)return;
+
   if(!battle.result&&now>=busyUntil&&!document.querySelector('dialog[open]')){
    if(window.ExpeditionSpeech.traitBark(battle.living('party'),(ally,loss,breaks,time)=>{
     characterEffects.play(ally.id,loss<0?'confidence':'moraleHit',time,850);
@@ -402,7 +404,7 @@ window.startBlackstoneBattle=({party,snapshot,onCheckpoint,onFinish,onOptions,ge
   });
   const frameLayout=getLayout?.(),rootBounds=root.getBoundingClientRect(),panel=root.querySelector('.combat-console'),panelTop=panel?panel.getBoundingClientRect().top-rootBounds.top:Infinity,drawnPositions=new Map();
   root.querySelectorAll('.combat-sprite').forEach(canvas=>{
-   const u=displayUnits.find(u=>u.id===canvas.dataset.unit);if(frameLayout){const l=frameLayout,button=canvas.parentElement,direction=l.travelDirection<0?-1:1;const encounterX=Number.isFinite(l.encounterX)?l.encounterX:l.heroX,width=l.width||innerWidth;const battleCenter=encounterX+direction*l.unit*.47,gap=Math.min(l.unit*.26,width*.10),spacing=Math.min(l.unit*.16,width*.055),side=u.side==='party'?-1:1;const rawX=battleCenter+direction*side*(gap+(u.visualRank-1)*spacing)-l.camera;const zoom=l.zoom||1,bias=l.bias||0,near=(u.side==='party'?direction:-direction)*bias;const center=l.center??innerWidth/2;const baseX=center+(rawX-center)*zoom+bias*direction*l.unit*.018;const baseSize=(u.side==='party'?l.size:l.size*.94)*zoom*(1+near*.045);const pose=camera.pose(u,displayUnits,l,shot,baseX,baseSize);const x=pose.x;const foot=Math.min(l.footY??l.unit*846/1024,Number.isFinite(panelTop)?panelTop-30:Infinity)+near*l.unit*.009;const paired=!!shot.action&&pose.participant;const focusGoal=focusId&&!reduced?(focusId===u.id?1.22:1):1;const previousScale=focusScales.get(u.id)||1;const focusScale=Math.abs(focusGoal-previousScale)<.0001?focusGoal:previousScale+(focusGoal-previousScale)*(1-Math.exp(-focusDt*18));focusScales.set(u.id,focusScale);const size=focusScale*baseSize*pose.scale,filter=`blur(${pose.blur}px) brightness(${pose.brightness})`;if(canvas.style.filter!==filter)canvas.style.filter=filter;drawnPositions.set(u.id,{x,foot,size});
+   const u=displayUnits.find(u=>u.id===canvas.dataset.unit);if(frameLayout){const l=frameLayout,button=canvas.parentElement,direction=l.travelDirection<0?-1:1;const encounterX=Number.isFinite(l.encounterX)?l.encounterX:l.heroX,width=l.width||innerWidth;const battleCenter=encounterX+direction*l.unit*.47,gap=Math.min(l.unit*.26,width*.10),spacing=Math.min(l.unit*.16,width*.055),side=u.side==='party'?-1:1;const rawX=battleCenter+direction*side*(gap+(u.visualRank-1)*spacing)-l.camera;const zoom=l.zoom||1,bias=l.bias||0,near=(u.side==='party'?direction:-direction)*bias;const center=l.center??innerWidth/2;const baseX=center+(rawX-center)*zoom+bias*l.unit*.018;const baseSize=(u.side==='party'?l.size:l.size*.94)*zoom*(1+near*.045);const pose=camera.pose(u,displayUnits,l,shot,baseX,baseSize);const x=pose.x;const foot=Math.min(l.footY??l.unit*846/1024,Number.isFinite(panelTop)?panelTop-30:Infinity)+near*l.unit*.009;const paired=!!shot.action&&pose.participant;const focusGoal=focusId&&!reduced?(focusId===u.id?1.22:1):1;const previousScale=focusScales.get(u.id)||1;const focusScale=Math.abs(focusGoal-previousScale)<.0001?focusGoal:previousScale+(focusGoal-previousScale)*(1-Math.exp(-focusDt*18));focusScales.set(u.id,focusScale);const size=focusScale*baseSize*pose.scale,filter=`blur(${pose.blur}px) brightness(${pose.brightness})`;if(canvas.style.filter!==filter)canvas.style.filter=filter;drawnPositions.set(u.id,{x,foot,size});
    button.style.zIndex=focusId===u.id?'30':paired?(u.id===attackId?'22':'21'):'';button.classList.toggle('turn-owner',!battle.result&&u.id===(now<busyUntil&&attackId?attackId:battle.active?.id));button.classList.toggle('attack-target',paired&&shot.action.targetIds.includes(u.id));button.dataset.emphasis=paired?'attack':'none';canvas.style.transition='none';Object.assign(button.style,{position:'absolute',left:(x-65)+'px',top:(foot-60)+'px',width:'130px',height:'84px','--sprite-size':size+'px'});
    Object.assign(canvas.style,{width:size+'px',height:size+'px',left:((130-size)/2)+'px',top:(60-size*468/512)+'px',bottom:'auto'});const meter=button.querySelector('meter');if(meter)meter.style.top=(48-size*468/512+size*(u.id!=='gunner'?.14:.07))+'px';}
 const death=deaths.get(u.id);if(death!==undefined&&now-death>=1200){canvas.parentElement.style.visibility='hidden';return;}
@@ -449,6 +451,6 @@ const reaction=reactions.get(u.id);const hurt=reaction&&now>=reaction.start&&now
  }
  requestAnimationFrame(draw);
  window.ExpeditionSpeech?.say(battle.living('party')[0],'neutral');
- render();return ()=>{closed=true;removeEventListener('keydown',onHotkey);camera.clear();onActionFocus?.(0);onStressFocus?.(null);characterEffects.clear();clearTimeout(timer);hideTurnNotice();root.remove();};
+ render();return ()=>{closed=true;stopIntro();removeEventListener('keydown',onHotkey);camera.clear();onActionFocus?.(0);onStressFocus?.(null);characterEffects.clear();clearTimeout(timer);hideTurnNotice();root.remove();};
 };
 })();

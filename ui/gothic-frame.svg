@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#c39a55"/><stop offset=".22" stop-color="#5e4726"/><stop offset=".55" stop-color="#211a11"/><stop offset=".8" stop-color="#7c5e31"/><stop offset="1" stop-color="#d1ad67"/></linearGradient>
+    <radialGradient id="rivet"><stop stop-color="#f0cc7d"/><stop offset=".34" stop-color="#735329"/><stop offset="1" stop-color="#130e08"/></radialGradient>
+  </defs>
+  <path fill="none" stroke="#090b0a" stroke-width="16" d="M8 8h104v104H8z"/>
+  <path fill="none" stroke="url(#metal)" stroke-width="7" d="M9 9h102v102H9z"/>
+  <path fill="none" stroke="#171b18" stroke-width="5" d="M17 17h86v86H17z"/>
+  <path fill="none" stroke="#a68348" stroke-width="1" d="M21 21h78v78H21z"/>
+  <g fill="#121512" stroke="#9a7740" stroke-width="2"><path d="M5 5h30L24 15l-9 9L5 35zM115 5H85l11 10 9 9 10 11zM5 115h30l-11-10-9-9-10-11zM115 115H85l11-10 9-9 10-11z"/></g>
+  <g fill="url(#rivet)" stroke="#19120a"><circle cx="13" cy="13" r="4"/><circle cx="107" cy="13" r="4"/><circle cx="13" cy="107" r="4"/><circle cx="107" cy="107" r="4"/></g>
+</svg>

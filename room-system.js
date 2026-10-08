@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 10;
+  const VERSION = 15;
   const VARIANT_COUNT = 4;
   const clampVariant = value => ((Number(value) || 0) % VARIANT_COUNT + VARIANT_COUNT) % VARIANT_COUNT;
   const hash = value => {
@@ -24,9 +24,12 @@
     };
   }
 
-  function positionCorridorAccesses(seed, rooms, corridors) {
+  function positionCorridorAccesses(seed, rooms, corridors, protectedCorridors = []) {
     const degree=Object.fromEntries(rooms.map(room=>[room.id,0]));
     corridors.forEach(corridor=>{degree[corridor.from]=(degree[corridor.from]||0)+1;degree[corridor.to]=(degree[corridor.to]||0)+1;});
+    rooms.forEach(room=>{room.mapX=room.x*2;room.mapY=room.y*2;});
+    const protectedSet=new Set(protectedCorridors.filter(Boolean)),claimed=new Set();
+    corridors.forEach(corridor=>{delete corridor.branchRoom;delete corridor.branchAccess;delete corridor.branchJunction;delete corridor.branchCorridor;delete corridor.branchKind;delete corridor.absorbedBy;});
     corridors.forEach((corridor,index)=>{
       const left=.68+(hash(`${seed}:platform-left:${index}`)%25)/100;
       const right=5.08+(hash(`${seed}:platform-right:${index}`)%25)/100;
@@ -34,18 +37,66 @@
       const fromIsLeft=fromRoom.y===toRoom.y?fromRoom.x<toRoom.x:fromRoom.y>toRoom.y;
       corridor.fromAccess=fromIsLeft?left:right;
       corridor.toAccess=fromIsLeft?right:left;
-      delete corridor.branchRoom;delete corridor.branchAccess;
+      if(claimed.has(corridor.id))return;
       const candidates=[];
       for(const junction of [corridor.from,corridor.to].filter(id=>(degree[id]||0)>=3))for(const edge of corridors){
         if(edge===corridor)continue;
         const room=edge.from===junction?edge.to:edge.to===junction?edge.from:null;
-        if(room&&room!==corridor.from&&room!==corridor.to&&!candidates.includes(room))candidates.push(room);
+        if(room&&degree[room]===1&&room!==corridor.from&&room!==corridor.to&&!protectedSet.has(edge.id)&&!claimed.has(edge.id)&&!edge.branchRoom&&!candidates.some(candidate=>candidate.room===room))candidates.push({room,edge,junction});
       }
       if(candidates.length&&hash(`${seed}:central-branch:${index}`)%4===0){
-        corridor.branchRoom=candidates[hash(`${seed}:central-branch-room:${index}`)%candidates.length];
+        const branch=candidates[hash(`${seed}:central-branch-room:${index}`)%candidates.length];
+        corridor.branchRoom=branch.room;
         corridor.branchAccess=2.7+(hash(`${seed}:central-branch-position:${index}`)%61)/100;
+        corridor.branchJunction=branch.junction;
+        corridor.branchCorridor=branch.edge.id;
+        corridor.branchKind=(hash(`${seed}:central-branch-kind:${index}`)>>>8)%2?'room':'corridor';
+        branch.edge.absorbedBy=corridor.id;
+        claimed.add(branch.edge.id);
+        const branchRoom=rooms.find(room=>room.id===branch.room),a=rooms.find(room=>room.id===corridor.from),b=rooms.find(room=>room.id===corridor.to);
+        if(branchRoom&&a&&b){
+          const span=corridor.toAccess-corridor.fromAccess;
+          const t=Math.abs(span)<.001?.5:Math.max(0,Math.min(1,(corridor.branchAccess-corridor.fromAccess)/span));
+          const junctionX=a.mapX+(b.mapX-a.mapX)*t,junctionY=a.mapY+(b.mapY-a.mapY)*t,horizontal=a.y===b.y;
+          let side=horizontal?Math.sign(branchRoom.y*2-junctionY):Math.sign(branchRoom.x*2-junctionX);
+          if(!side)side=(hash(`${seed}:central-branch-side:${index}`)>>>8)%2?1:-1;
+          const distance=corridor.branchKind==='room'?.62:2;
+          branchRoom.mapX=junctionX+(horizontal?0:side*distance);
+          branchRoom.mapY=junctionY+(horizontal?side*distance:0);
+        }
       }
     });
+  }
+
+  function buildConnections(rooms,corridors){
+    const connections=Object.fromEntries(rooms.map(room=>[room.id,[]]));
+    corridors.filter(corridor=>!corridor.absorbedBy).forEach(corridor=>{
+      const members=[corridor.from,corridor.to,corridor.branchRoom].filter((id,index,list)=>id&&list.indexOf(id)===index);
+      for(const room of members)for(const destination of members)if(destination!==room)connections[room].push({room:destination,corridor:corridor.id});
+    });
+    return connections;
+  }
+
+  function mapNeedsRepair(layout){
+    const rooms=layout.rooms||[],corridors=(layout.corridors||[]).filter(corridor=>!corridor.absorbedBy),roomById=new Map(rooms.map(room=>[room.id,room]));
+    const roomPositions=new Set(),branchRooms=new Set();
+    for(const room of rooms){
+      const key=`${Number(room.mapX).toFixed(5)},${Number(room.mapY).toFixed(5)}`;
+      if(roomPositions.has(key))return true;
+      roomPositions.add(key);
+    }
+    for(const corridor of corridors){
+      const a=roomById.get(corridor.from),b=roomById.get(corridor.to);
+      if(!a||!b||(a.mapX!==b.mapX&&a.mapY!==b.mapY))return true;
+      if(!corridor.branchRoom)continue;
+      if(branchRooms.has(corridor.branchRoom))return true;
+      branchRooms.add(corridor.branchRoom);
+      const branch=roomById.get(corridor.branchRoom),span=corridor.toAccess-corridor.fromAccess;
+      const t=Math.abs(span)<.001?.5:Math.max(0,Math.min(1,(corridor.branchAccess-corridor.fromAccess)/span));
+      const junctionX=a.mapX+(b.mapX-a.mapX)*t,junctionY=a.mapY+(b.mapY-a.mapY)*t,horizontal=a.mapY===b.mapY;
+      if(!branch||Math.abs(horizontal?branch.mapX-junctionX:branch.mapY-junctionY)>.00001)return true;
+    }
+    return false;
   }
 
   function positionCorridorEncounters(seed,corridors){
@@ -54,6 +105,28 @@
       corridor.encounterPosition=1.75+(hash(`${seed}:encounter-position:${index}`)%280)/100;
     });
     if(corridors.length&&!corridors.some(corridor=>corridor.hasEncounter))corridors[hash(`${seed}:encounter-required`)%corridors.length].hasEncounter=true;
+  }
+
+  function positionCorridorProps(seed,corridors,entry){
+    const passages=[{id:'corridor-entry',fromAccess:.34,toAccess:entry.access,encounterPosition:entry.encounterPosition},...corridors];
+    const pickPosition=(passage,type,index)=>{
+      const occupied=[passage.fromAccess,passage.toAccess,passage.branchAccess,passage.encounterPosition,...(passage.props||[]).map(prop=>prop.position)].filter(Number.isFinite);
+      for(let attempt=0;attempt<32;attempt++){
+        const position=.92+(hash(`${seed}:prop-position:${passage.id}:${type}:${index}:${attempt}`)%365)/100;
+        if(occupied.every(value=>Math.abs(value-position)>.58))return position;
+      }
+      return 1.45+(index%3)*1.15;
+    };
+    passages.forEach((passage,index)=>{
+      passage.props=[];
+      if(hash(`${seed}:prop-roll:${passage.id}:obstacle`)%100<42)passage.props.push({id:'obstacle',position:pickPosition(passage,'obstacle',index)});
+      if(hash(`${seed}:prop-roll:${passage.id}:cache`)%100<38)passage.props.push({id:'cache',position:pickPosition(passage,'cache',index)});
+    });
+    for(const type of ['obstacle','cache'])if(!passages.some(passage=>passage.props.some(prop=>prop.id===type))){
+      const passage=passages[hash(`${seed}:required-prop:${type}`)%passages.length];
+      passage.props.push({id:type,position:pickPosition(passage,type,passages.indexOf(passage))});
+    }
+    return passages[0].props;
   }
 
   function createRaidLayout(seed = newSeed(), roomCount = 8) {
@@ -82,11 +155,7 @@
     // add its stop near the middle to read as a genuine side branch.
     positionCorridorAccesses(seed,rooms,corridors);
     positionCorridorEncounters(seed,corridors);
-    const connections = Object.fromEntries(rooms.map(room => [room.id, []]));
-    corridors.forEach(corridor => {
-      connections[corridor.from].push({ room: corridor.to, corridor: corridor.id });
-      connections[corridor.to].push({ room: corridor.from, corridor: corridor.id });
-    });
+    const connections = buildConnections(rooms,corridors);
     const distance = {[rooms[0].id]:0}, queue=[rooms[0].id];
     while(queue.length){const id=queue.shift();for(const edge of connections[id])if(distance[edge.room]===undefined){distance[edge.room]=distance[id]+1;queue.push(edge.room);}}
     const finalRoom=rooms.slice().sort((a,b)=>(distance[b.id]||0)-(distance[a.id]||0)||b.index-a.index)[0];
@@ -94,24 +163,35 @@
     const finalCorridor=corridors.find(c=>c.id===finalEdge.corridor);
     const exitPosition=5.58;
     const entryAccess=5.08+(hash(`${seed}:entry-platform`)%25)/100;
+    const entryEncounter=hash(`${seed}:entry-encounter-roll`)%100<35;
+    const entryEncounterPosition=2.1+(hash(`${seed}:entry-encounter-position`)%180)/100;
+    const entryProps=positionCorridorProps(seed,corridors,{access:entryAccess,encounterPosition:entryEncounterPosition});
     const nodes = [rooms[0], ...corridors.flatMap((corridor, index) => [corridor, rooms[index + 1]])];
-    return { version: VERSION, seed, entry: rooms[0].id, finalRoom:finalRoom.id, startPortal:{corridor:'corridor-entry',position:.34}, exitPortal:{corridor:finalCorridor.id,position:exitPosition}, entryAccess, entryEncounter:hash(`${seed}:entry-encounter-roll`)%100<35, entryEncounterPosition:2.1+(hash(`${seed}:entry-encounter-position`)%180)/100, current: 'corridor-entry', currentCorridor: 'corridor-entry', corridorFrom: null, corridorTo: rooms[0].id, rooms, corridors, connections, nodes };
+    return { version: VERSION, seed, entry: rooms[0].id, finalRoom:finalRoom.id, startPortal:{corridor:'corridor-entry',position:.34}, exitPortal:{corridor:finalCorridor.id,position:exitPosition}, entryAccess, entryEncounter, entryEncounterPosition, entryProps, current: 'corridor-entry', currentCorridor: 'corridor-entry', corridorFrom: null, corridorTo: rooms[0].id, rooms, corridors, connections, nodes };
   }
 
   function ensureRun(run) {
     if (!run) return null;
-    if([5,6,7,8,9].includes(run.raidLayout?.version)&&Array.isArray(run.raidLayout.rooms)&&Array.isArray(run.raidLayout.corridors)){
-      positionCorridorAccesses(run.raidLayout.seed,run.raidLayout.rooms,run.raidLayout.corridors);
+    if([5,6,7,8,9,10,11,12,13,14].includes(run.raidLayout?.version)&&Array.isArray(run.raidLayout.rooms)&&Array.isArray(run.raidLayout.corridors)){
+      const protectedCorridors=[run.raidLayout.currentCorridor,run.raidLayout.current,run.raidLayout.exitPortal?.corridor];
+      positionCorridorAccesses(run.raidLayout.seed,run.raidLayout.rooms,run.raidLayout.corridors,protectedCorridors);
+      run.raidLayout.connections=buildConnections(run.raidLayout.rooms,run.raidLayout.corridors);
       positionCorridorEncounters(run.raidLayout.seed,run.raidLayout.corridors);
       run.raidLayout.entryAccess=5.08+(hash(`${run.raidLayout.seed}:entry-platform`)%25)/100;
       run.raidLayout.entryEncounter=hash(`${run.raidLayout.seed}:entry-encounter-roll`)%100<35;
       run.raidLayout.entryEncounterPosition=2.1+(hash(`${run.raidLayout.seed}:entry-encounter-position`)%180)/100;
+      run.raidLayout.entryProps=positionCorridorProps(run.raidLayout.seed,run.raidLayout.corridors,{access:run.raidLayout.entryAccess,encounterPosition:run.raidLayout.entryEncounterPosition});
       if(run.raidLayout.exitPortal)run.raidLayout.exitPortal.position=5.58;
       run.raidLayout.version=VERSION;
     }else if (!run.raidLayout || run.raidLayout.version !== VERSION || !Array.isArray(run.raidLayout.rooms)) {
       run.raidLayout = createRaidLayout(run.raidLayout?.seed);
       run.progress = .48;
       run.roomPosition = .34;
+    }
+    if(mapNeedsRepair(run.raidLayout)){
+      const protectedCorridors=[run.raidLayout.currentCorridor,run.raidLayout.current,run.raidLayout.exitPortal?.corridor];
+      positionCorridorAccesses(run.raidLayout.seed,run.raidLayout.rooms,run.raidLayout.corridors,protectedCorridors);
+      run.raidLayout.connections=buildConnections(run.raidLayout.rooms,run.raidLayout.corridors);
     }
     return run.raidLayout;
   }
@@ -148,6 +228,7 @@
 
   function otherRoom(corridor, roomId) {
     if (!corridor) return null;
+    if (corridor.branchRoom === roomId) return corridor.branchJunction || corridor.from;
     return corridor.from === roomId ? corridor.to : corridor.to === roomId ? corridor.from : null;
   }
 

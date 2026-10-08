@@ -11,6 +11,7 @@ function validate(s){
  if(s.run&&(!Array.isArray(s.run.party)||!s.run.party.length||s.run.party.length>4||!s.run.party.every(h=>typeof h.id==='string'&&Number.isFinite(h.hp)&&Number.isFinite(h.maxHp)&&h.maxHp>0)))throw Error('Invalid expedition');
  for(const [place,slots] of Object.entries(s.restSlots||{}))if(!['bar','temple','ship'].includes(place)||!Array.isArray(slots)||slots.length>3||!slots.every(x=>x===null||(typeof x.id==='string'&&Number.isSafeInteger(x.cost)&&x.cost>=0)))throw Error('Invalid rest assignments');
  if(s.heroProfiles&&(typeof s.heroProfiles!=='object'||Array.isArray(s.heroProfiles)))throw Error('Invalid crew profiles');
+ if(s.fortressProgress){const p=s.fortressProgress;if(p.version!==1||!Number.isInteger(p.sector)||p.sector<0||p.sector>3||!Number.isFinite(p.data)||p.data<0||p.data>100||typeof p.centerFound!=='boolean'||p.controlRouteSeed!==undefined&&typeof p.controlRouteSeed!=='string')throw Error('Invalid fortress progression');}
  if(s.run?.battle){const b=s.run.battle;if(!Array.isArray(b.units)||b.units.length>12||!b.units.every(u=>typeof u.id==='string'&&Number.isFinite(u.hp)&&Number.isFinite(u.maxHp)&&['party','enemy'].includes(u.side))||!Array.isArray(b.queue)||!Array.isArray(b.log)||!b.log.every(x=>typeof x==='string')||!Number.isInteger(b.round)||!b.units.some(u=>u.id===b.activeId))throw Error('Invalid battle');}
  return s;
 }

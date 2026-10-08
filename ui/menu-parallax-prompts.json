@@ -1,0 +1,31 @@
+{
+  "tool": "built-in image_gen",
+  "note": "Only space and cursor approved; fortress extraction drafts rejected for changing geometry. Runtime clips the original approved illustration.",
+  "assets": [
+    {
+      "id": "space",
+      "prompt": "Edit the supplied approved main menu illustration. Remove ONLY the entire Blackstone Fortress station from the middle-right of the image and reconstruct the blue teal nebula behind it. Keep all surrounding clouds and tiny ship debris, original painterly illustrated style, colors and full landscape framing. No station geometry remains. This is the stationary background plate for compositing. Opaque background.",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-32b4a879-12aa-4a90-8875-d823d5c0969f.png"
+    },
+    {
+      "id": "upper",
+      "prompt": "Extract ONLY the UPPER level of the fortress: central large pyramidal roof and the four broad cardinal arms radiating from it with triangular arrowhead end plates (upper-left, upper-right, right-lower, bottom-left in this perspective). Remove space, clouds, unrelated debris, middle spokes and lower layer. Preserve exact original perspective, lighting, shape, dimensions and location in the original FULL LANDSCAPE CANVAS. Do not recenter or enlarge. Preserve the upper roof and arms exactly as pictured. Transparent outside the extracted upper level. Reconstruct only tiny gaps hidden by other foreground parts if necessary. No redesign.",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-e8c3cf99-1f8d-4d06-ad74-2cb159ac10f1.png"
+    },
+    {
+      "id": "middle",
+      "prompt": "Extract ONLY the MIDDLE level of the fortress: its four thinner long straight exposed structural spokes running between the upper broad arms, central cylindrical mechanical hub beneath pyramid. Include their small thin end pieces. Exclude the four broad upper cardinal arms and central pyramidal roof; exclude the lower triangular platform tier. Remove all space, clouds and unrelated ship debris. Preserve exact original perspective, lighting, location and dimensions in the FULL LANDSCAPE CANVAS. Do not recenter, rescale or change station geometry. Reconstruct short stretches of these thin spokes behind the removed upper parts so this tier can move by a few pixels in compositing. Transparent outside this tier.",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-6bdbfb81-a6e5-4df0-801f-2288b28e5f6f.png"
+    },
+    {
+      "id": "lower",
+      "prompt": "Extract ONLY the LOWER tier of the fortress: the four lower triangular arrowhead platforms with their connector arms and central underside, visible as the recessed four diagonal platforms beneath/between the broad upper arms. Preserve precise original shape, perspective, painted style, lighting and exact location within original FULL LANDSCAPE CANVAS. Remove the upper central pyramid and its four broad upper arms, remove thin middle mechanical spokes; remove space, clouds and unrelated ship debris. Complete only small occluded portions of lower connectors underneath the upper tier to allow a few pixels of parallax. No redesign, no recentering or enlargement. Transparent outside lower tier.",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-48d61a97-1deb-47d7-810d-d3a7cb97b777.png"
+    },
+    {
+      "id": "cursor",
+      "prompt": "Create ONE tiny game mouse pointer on genuine transparent background. A sharp arrow pointing upper-left, tip near upper-left corner of the canvas; compact dark iron arrow body, subtle antique brass bevel and small dark teal inset. Hand-inked painted gothic science fiction style matching the supplied reference art. Simple strong silhouette that remains legible at 32x32 pixels. No skull attached, no gears, no dangling elements, no lettering, no glow, no background. The entire icon occupies the square canvas with small transparent margin.",
+      "source": "C:\\Users\\yarog\\.codex\\generated_images\\01a0bd9f-9ccb-7993-97a4-4e6f0d855c87\\exec-be0ad13c-e6fc-4b85-9d4a-21b8a4db6814.png"
+    }
+  ]
+}

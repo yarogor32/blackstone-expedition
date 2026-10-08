@@ -1,0 +1,314 @@
+/* Shared hierarchy: heading, contents, one primary action. */
+.menu-close{border:0;background:none;color:#b8664f;font:32px/1 Georgia;cursor:pointer;padding:0 4px}.menu-close:hover{color:#ffbd8b}
+.inventory-dialog h2{font-size:34px!important;letter-spacing:0;text-transform:none}
+.inventory-dialog:not(.return-debrief){width:min(1100px,94vw);grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:18px;padding:20px 24px;background-image:linear-gradient(#121713f5,#030605fc),url('ui/iron-texture.svg')!important}
+.inventory-dialog .inventory-grid{grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;align-self:start}
+.inventory-dialog .inventory-slot{min-height:90px;height:90px;border:1px solid #62553d!important;padding:5px 2px 19px;background-image:linear-gradient(#161b16,#030605)!important}
+.inventory-slot .item-icon{width:48px;height:48px}.inventory-slot>span:not(.item-icon){font:9px/1.15 Arial}
+.item-drawn{display:inline-block;flex:0 0 auto!important}.item-drawn .drawn-icon{display:block;width:100%;height:100%}
+.inventory-dialog .inventory-detail{border:0!important;border-image:none!important;box-shadow:none!important;background-image:none!important;background-color:transparent!important;clip-path:none!important;padding:8px 0 8px 18px!important;border-left:1px solid #594a31!important}
+.inventory-dialog .inventory-detail h3{font-size:23px}.inventory-dialog .inventory-detail p{font:14px/1.6 Arial;color:#c5bcaa}.inventory-dialog .inventory-actions .btn{font:13px Georgia;padding:9px 14px;letter-spacing:0}
+.inventory-dialog .inventory-status,.inventory-dialog .inventory-crew{border:0!important;box-shadow:none!important;background-image:none!important;background-color:transparent!important;padding:4px 0 12px;border-bottom:1px solid #52472f!important}
+.inventory-dialog .inventory-notice:empty{display:none}
+.inventory-dialog.loot-dialog,.inventory-dialog.event-dialog{display:block;width:min(540px,94vw);padding:16px 24px 20px;overflow:auto}
+.inventory-dialog.loot-dialog header{justify-content:center;position:relative;border-bottom:3px double #7d6740;padding:4px 32px 13px}
+.loot-dialog .menu-close{position:absolute;right:0;top:7px}
+.loot-subtitle{text-align:center;color:#c1b28d;font:15px Arial;margin:16px 0 22px}
+.loot-dialog .loot-pile{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:0 auto 24px}
+.loot-card{position:relative;width:134px;min-height:162px;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 8px;border:1px solid #76613c;background:linear-gradient(#131b16,#020504);color:#e6c78d}
+.loot-card:hover,.loot-card:focus-visible{outline:1px solid #e6c78d;box-shadow:inset 0 0 18px #ab853828}
+.loot-card .item-icon{width:70px;height:70px}.loot-card strong{font:14px/1.2 Georgia}.loot-card>b{position:absolute;right:7px;top:6px;font:16px Georgia}.loot-card small{font:12px Arial;color:#a99e87}
+.loot-capacity{display:flex;justify-content:space-between;align-items:center;gap:10px;font:12px Arial;color:#a69a83;margin-bottom:12px}.loot-capacity button{background:none;border:0;border-bottom:1px solid #88734c;color:#e1c28d;font:12px Arial;padding:4px}
+.loot-footer{display:grid;grid-template-columns:2fr 1fr;gap:12px;padding-top:14px;border-top:1px solid #5e4b30}
+.loot-footer .btn{font:18px var(--ui-title);padding:12px;letter-spacing:.03em}.loot-footer .btn:first-child{color:#efd49d;border-color:#b99650!important}.loot-footer .btn:last-child{color:#a99479;font-size:15px}
+.inventory-dialog.loot-sorting{width:min(1040px,94vw)}.loot-sorting .inventory-grid{margin:18px 0}.loot-sorting .inventory-detail{min-height:0!important;display:flex!important;border-left:0!important;border-top:1px solid #594a31!important;padding:14px 0!important}
+.loot-close-confirm .btn{font-size:14px}.inventory-dialog.event-dialog h2{font-size:30px!important}.event-dialog .expedition-event{background:none;color:#d6c8aa;padding:0;margin:20px 0}.event-dialog .expedition-event p{font:16px/1.65 Georgia}.event-dialog .inventory-actions{display:grid;gap:12px;margin-top:24px}.event-dialog .inventory-actions .btn{font:16px Georgia;padding:14px}
+/* Keep building hosts' cropped artwork edges below the transparent footer. */
+@media(min-width:761px){.building-scene .npc-portrait>img{translate:-50% calc(18% + 100px)}}
+/* Merchant left, stock above the shared pack on the right. */
+.building-scene{height:calc(100dvh - 62px);min-height:0;grid-template-columns:minmax(400px,46%) minmax(0,1fr);padding:24px 316px 24px 28px;gap:24px;align-items:center}
+.building-scene .building-panel{grid-column:1;grid-row:1;justify-self:start;align-self:stretch;max-width:none;margin:0;padding:22px 26px;overflow:auto;border:0!important;border-image:none!important;border-left:1px solid #8c7042!important;background-image:linear-gradient(90deg,#030605f5,#030605ce)!important;box-shadow:none!important}
+.building-scene .building-panel:before,.trade-panel:before{display:none}.building-scene .building-panel h2{font-size:40px;line-height:1.1;margin:24px 0 12px}.building-scene .building-description{font:15px/1.6 Arial;max-width:48ch;margin-bottom:22px}.building-panel>.btn{display:block;width:100%;margin:10px 0;font:18px var(--ui-title);padding:14px}.building-panel>.btn:disabled{font:13px Arial;opacity:.4;padding:10px}
+.building-scene .npc-portrait{grid-column:2;grid-row:1;height:100%;position:relative;min-width:0}.building-scene .hub-roster{position:absolute;top:24px;right:18px;bottom:24px;width:280px;overflow:auto;display:block;pointer-events:auto;padding:9px;background:#070d0ced;border:1px solid #77603a}.building-scene .hub-roster-member{min-height:80px}.building-scene .hub-roster-member strong{font:15px/1.25 Georgia!important}.building-scene .hub-roster-member span:not(.crew-face){font-size:9px!important;letter-spacing:.06em!important}.building-scene .hub-roster footer{font:9px Arial;text-align:center;color:#817254;margin-top:12px}
+.building-panel .upgrade-box{border:0!important;border-top:1px solid #625236!important;background:none!important;box-shadow:none!important;margin-top:26px;padding:20px 0!important}.building-panel .upgrade-box>strong{font:23px var(--ui-title);color:#dfc18a}.building-panel .upgrade-box .btn{font:15px Georgia;padding:12px 18px}.building-panel .treatment-panel{margin-top:20px}.building-panel .treatment-panel h3{font:26px var(--ui-title);color:#dfc18a}.building-panel .caption{font:13px/1.5 Arial;color:#ac9f85}.building-panel .rest-slots{gap:14px}.building-panel .rest-slot{min-height:112px}
+.options-dialog,.character-dialog,.camp-dialog,.flee-dialog{max-height:90dvh;overflow:auto}.options-dialog h2,.character-dialog h2,.camp-dialog h2,.flee-dialog h2{font-family:var(--ui-title);font-size:32px;letter-spacing:0}.options-dialog p,.character-dialog p,.camp-dialog p,.flee-dialog p{font-size:15px;line-height:1.55}.character-dialog .character-stats{border:0!important;background:none!important;box-shadow:none!important}.return-report h3{font:30px var(--ui-title);color:#e7c788}.return-report>.btn{width:100%;font:20px var(--ui-title);margin-top:18px;padding:14px}
+@media(max-width:1100px){.building-scene{grid-template-columns:minmax(320px,55%) 1fr;padding-right:256px;gap:12px}.building-scene .hub-roster{width:228px}.building-scene .building-panel{padding:12px 16px}.building-scene .building-panel h2{font-size:32px}}
+@media(max-width:760px){.building-scene{height:auto;min-height:calc(100dvh - 62px);padding:16px;grid-template-columns:1fr}.building-scene .hub-roster{display:none}.building-scene .npc-portrait{display:none}.building-scene .building-panel{grid-column:1}}
+.trade-screen{padding:24px 4vw 20px;background:linear-gradient(90deg,#05090766,#050907e8 40%),url('interiors/market.png') center/cover;grid-template-rows:54px minmax(0,1fr) 42px;gap:16px}
+.trade-top{border-bottom:3px double #75603c;padding-bottom:10px;gap:24px}.trade-top h1{font:40px var(--ui-title);color:#e9c988;margin:0 auto 0 0}.trade-top>span{font:23px Georgia}.trade-top .btn{font-size:14px}
+.trade-merchant{left:0;right:auto;width:35%;top:95px;bottom:30px}.trade-merchant>img{transform:none!important;object-position:center bottom}.trade-speech{bottom:6%;left:8%;right:8%;font:17px/1.5 Georgia}
+.trade-columns{margin-left:35%;width:65%;max-width:none;align-self:stretch;height:100%;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.trade-panel{border:0!important;border-image:none!important;box-shadow:none!important;background-image:none!important;background-color:#030605d9!important;padding:15px 20px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(180px,1fr);grid-template-rows:auto minmax(0,1fr) auto;gap:8px 18px;border-top:1px solid #7b633c!important}
+.trade-stock{grid-row:1}.trade-owned{grid-row:2}.trade-panel h2{grid-column:1/-1;font:27px var(--ui-title);text-transform:none;letter-spacing:0;margin:0;padding:0 0 8px;border:0}.trade-panel h2 small{font:12px Arial;color:#a99e86;letter-spacing:0}
+.trade-grid{grid-template-columns:repeat(8,minmax(0,1fr));align-content:start;gap:5px}.trade-stock .trade-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.trade-slot{height:84px;border:1px solid #615137!important;padding:6px 3px 20px;clip-path:none!important}.trade-slot .item-icon{width:43px;height:43px;max-height:none}.trade-item-name{display:block;font:10px/1.2 Arial;color:#d3c29c;max-width:100%;overflow:hidden}.trade-stock .trade-slot{height:114px}.trade-slot small{font:12px Georgia;left:0;right:0;bottom:6px;text-align:center;color:#ead095}
+.trade-selection{margin:0;min-height:0;border:0!important;border-left:1px solid #51462f!important;box-shadow:none!important;background:none!important;padding:0 0 0 14px;font:13px/1.4 Arial;color:#b5aa94}.trade-selection .trade-row{font-size:12px}.trade-panel footer{grid-column:1/-1;justify-content:flex-end;gap:20px;border:0;margin:0;padding:0}.trade-panel footer .btn{min-width:220px;font:18px var(--ui-title);padding:10px 24px;color:#ead097;letter-spacing:.03em}.trade-panel footer>b{display:none}.trade-bottom{margin-left:35%;width:65%;border:0;background:none;padding:0;font-size:13px}
+@media(max-width:1100px){.trade-panel{grid-template-columns:minmax(0,1.6fr) minmax(145px,1fr);padding:10px;gap:8px}.trade-stock .trade-grid{grid-template-columns:repeat(3,1fr)}.trade-stock .trade-slot{height:78px}.trade-item-name{display:none}.trade-owned .trade-slot{height:60px}.trade-slot .item-icon{width:32px;height:32px}.trade-panel footer .btn{font-size:16px;padding:7px}.trade-panel h2{font-size:24px}.trade-panel h2 small{font-size:10px}.trade-screen{padding:12px 2vw;gap:10px}.trade-panel footer{gap:10px}.inventory-dialog .inventory-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-height:720px){.trade-stock .trade-slot{height:76px}.trade-item-name{display:none}.trade-owned .trade-slot{height:58px}.trade-panel{padding:8px 16px}.trade-panel h2{font-size:24px}.trade-panel footer .btn{padding:7px}.trade-slot .item-icon{width:34px;height:34px}.trade-screen{padding-top:10px;gap:8px}}
+@media(max-width:700px){.inventory-dialog:not(.return-debrief){display:block}.inventory-dialog .inventory-detail{margin-top:18px}.trade-columns,.trade-bottom{width:100%;margin:0}.trade-merchant{display:none}.trade-panel{grid-template-columns:1fr 150px}.trade-owned .trade-grid{grid-template-columns:repeat(4,1fr)}.trade-screen{overflow:auto;min-height:100vh;height:auto}.trade-columns{height:auto}.trade-grid{grid-template-columns:repeat(4,1fr)}}
+.trade-stock .trade-item-name{display:block;font:13px/1.2 Arial;margin-top:8px}.trade-item-description{font:15px/1.6 Arial;color:#bbae94;margin-top:20px}.trade-stock .trade-slot{height:156px}.trade-stock .trade-slot .item-icon{width:64px;height:64px}.trade-slot small{font-size:14px}.trade-selection .trade-row{font-size:14px}.trade-selection .trade-row .item-icon{width:28px;height:28px}.trade-selection .trade-row .btn{min-width:24px}.trade-slot:focus-visible{outline:2px solid #e7c384;outline-offset:2px}
+@media(max-height:720px){.trade-stock .trade-slot{height:112px}.trade-stock .trade-slot .item-icon{width:42px;height:42px}.trade-stock .trade-item-name{font-size:10px}.trade-stock .trade-slot small{bottom:4px}}
+.dock-chart-screen>footer{bottom:110px}
+.dock-chart-screen>.dock-launch{position:absolute;z-index:3;left:50%;bottom:22px;transform:translateX(-50%);min-width:320px;min-height:64px;padding:14px 38px;font:30px var(--ui-title);letter-spacing:.04em;color:#ffe2a0;border-color:#b79450!important;box-shadow:0 5px 18px #000b,inset 0 1px #c4aa6270!important}
+.battle-overlay .combat-versus{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;width:80px;height:94px;display:grid;place-items:center;font-size:64px;line-height:1;color:#e0c083;text-shadow:0 3px 5px #000;pointer-events:none}
+.combat-versus>img{width:80px;height:94px;object-fit:contain;filter:drop-shadow(0 3px 4px #000)}
+.battle-start-sequence{position:fixed;left:50%;top:30%;translate:-50% -50%;width:clamp(120px,13vw,180px);height:auto;z-index:2200;pointer-events:none;filter:drop-shadow(0 3px 5px #000);}
+.battle-overlay .combat-intro{animation:combat-intro-cue 2200ms ease-out both}
+@keyframes combat-intro-cue{0%{opacity:0}12%,65%{opacity:1}100%{opacity:0;visibility:hidden}}
+.turn-notice{place-items:center;padding-top:0}
+.chart-sprite-action{position:absolute;z-index:4;bottom:14px;border:0;padding:0;background:none;box-shadow:none;cursor:pointer;filter:drop-shadow(0 4px 5px #0007)}
+.chart-sprite-action>img{display:block;width:100%;height:100%;object-fit:contain}.chart-launch{left:50%;transform:translateX(-50%);width:clamp(240px,22vw,380px);height:120px}.chart-foreman{right:24px;width:clamp(230px,22vw,380px);height:100px;bottom:22px}.chart-sprite-action:hover:not(:disabled),.chart-sprite-action:focus-visible{filter:brightness(1.15) drop-shadow(0 4px 7px #0009);outline:none}.chart-sprite-action:focus-visible{outline:2px dashed #d8bb76;outline-offset:3px}.chart-sprite-action:disabled{filter:grayscale(.8);opacity:.45;cursor:default}
+.chart-back{position:absolute;z-index:4;left:28px;bottom:38px;border:0;border-bottom:2px solid #9b8456;background:#101611cf;color:#e6c792;font:25px var(--ui-title);padding:8px 22px;cursor:pointer}.chart-back:hover,.chart-back:focus-visible{color:#fff0bd;background:#20261bec}
+.chart-difficulty-note{position:absolute;z-index:3;transform:rotate(-4deg) skewX(-2deg) scaleY(.93);transform-origin:0 0;color:#343a3a;container-type:inline-size}.chart-difficulty-note>img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.chart-difficulty-note h3{position:absolute;top:20%;left:28%;right:8%;margin:0;text-align:center;font:7cqw 'Segoe Print',cursive}.chart-difficulty-choices{position:absolute;left:19%;right:8%;top:42%;display:flex;justify-content:space-around;gap:5%}.difficulty-choice{border:0;background:none;padding:0;width:30%;display:flex;flex-direction:column;align-items:center;gap:7cqw;color:#383d40;cursor:pointer;font:6cqw 'Segoe Print',cursive}.difficulty-choice i{display:block;width:12cqw;height:12cqw;border-radius:43% 52% 46% 49%;background:#376994;box-shadow:inset 2px 1px 3px #ffffff35,inset -2px -1px 2px #0002;transform:rotate(-8deg)}.difficulty-choice.normal i{background:#c4a338;transform:rotate(12deg)}.difficulty-choice.hard i{background:#a2362b;transform:rotate(-3deg)}.difficulty-choice[aria-pressed="true"] i{outline:2px solid #39423b;outline-offset:5px}.difficulty-choice[aria-pressed="true"] span{font-weight:bold;text-decoration:underline;text-underline-offset:4px}.difficulty-choice:hover i,.difficulty-choice:focus-visible i{filter:brightness(1.2)}.difficulty-choice:focus-visible{outline:1px dashed #65523a;outline-offset:5px}
+@media(max-width:800px){.chart-launch{width:220px;height:96px}.chart-foreman{width:180px;height:76px;right:12px}.chart-back{left:12px;font-size:20px;padding:6px 12px}}
+.chart-difficulty-choices{top:61%;left:14%;right:7%;gap:4%;overflow:visible}.difficulty-choice{position:relative;gap:0;font-size:5cqw;overflow:visible}.difficulty-choice>span{position:absolute;top:-7cqw;white-space:nowrap}.difficulty-seal{display:block;width:170%;max-width:none;height:45cqw;object-fit:contain;transform-origin:center 25%;transition:transform .22s ease,filter .22s ease;filter:drop-shadow(1px 3px 2px #0005)}.difficulty-choice[aria-pressed="true"] .difficulty-seal{transform:scale(1.3);filter:drop-shadow(1px 4px 3px #0006)}.difficulty-choice:hover .difficulty-seal{filter:brightness(1.1) drop-shadow(1px 3px 2px #0005)}
+@media(prefers-reduced-motion:reduce){.difficulty-seal{transition:none}}
+/* One illustrated return control throughout the menus. */
+.back-sprite{display:inline-flex;align-items:center;justify-content:center;width:148px;height:54px;min-width:0;flex:0 0 auto;padding:0;border:0;background:none;box-shadow:none;cursor:pointer;transition:filter .15s ease,transform .15s ease}
+.back-sprite img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.back-sprite:hover{filter:brightness(1.18);transform:translateY(-1px)}
+.back-sprite:focus-visible{outline:2px solid #ecd7a1;outline-offset:3px}
+.back-sprite:disabled{filter:grayscale(1) brightness(.5);cursor:default}
+.back-sprite.chart-back{position:absolute;z-index:4;left:28px;bottom:38px;width:170px;height:60px;padding:0;border:0;background:none}
+@media(max-width:800px){.back-sprite.chart-back{left:12px;bottom:28px;width:140px;height:50px}}
+/* PNG end caps keep their shape; only the middle repeats for longer labels. */
+.btn{--button-cap:45px;position:relative;isolation:isolate;min-height:54px;border:0!important;clip-path:none!important;padding:12px 48px!important;background-color:transparent!important;background-image:url('ui/button-left-v1.png'),url('ui/button-right-v1.png')!important;background-position:left center,right center!important;background-size:var(--button-cap) 100%,var(--button-cap) 100%!important;background-repeat:no-repeat!important;box-shadow:none!important;color:#f0d8a6;text-shadow:0 2px 2px #000}
+.btn::before{content:"";display:block;position:absolute;z-index:-1;left:calc(var(--button-cap) - 1px);right:calc(var(--button-cap) - 1px);top:0;bottom:0;width:auto;height:auto;opacity:1;background:url('ui/button-middle-v1.png') repeat-x center / auto 100%;pointer-events:none}
+.btn::after{display:none!important}
+.btn.small{min-height:48px;--button-cap:40px;padding:10px 43px!important;font-size:14px}
+.btn:hover,.btn:focus-visible{box-shadow:none!important;filter:brightness(1.16)}
+.btn:focus-visible{outline:2px solid #d9b96e;outline-offset:2px}
+.back-sprite,.btn.universal-button,.btn[data-save-load]{background:transparent url('ui/button-backing-v1.png') no-repeat center / 100% 100%!important;border:0!important;box-shadow:none!important;color:#f0d8a6;text-shadow:0 2px 2px #000}
+.back-sprite{font:700 21px var(--ui-title,Georgia);width:174px;height:58px;padding:0 30px}
+.back-sprite.chart-back{width:180px;height:60px;background:transparent url('ui/button-backing-v1.png') no-repeat center / 100% 100%!important}
+.btn.universal-button::before,.btn[data-save-load]::before{display:none}
+.menu-nav .btn.universal-button{display:flex;justify-content:center;text-align:center!important;min-height:78px;padding:14px 48px!important}
+.universal-button .menu-command-icon,.universal-button .menu-command-stud{display:none}
+.universal-button .menu-command-copy{padding:0;border:0}
+.universal-button .menu-command-copy b{font-size:22px}
+.universal-button .menu-command-copy small{color:#b4b2a2;letter-spacing:.06em}
+.dock-next.btn{--button-cap:66px;min-height:80px;padding:20px 74px!important;background-color:transparent!important;box-shadow:none!important}
+@font-face{font-family:'Expedition Button Gothic';src:url('fonts/GrenzeGotisch-Variable.ttf') format('truetype');font-display:swap;font-weight:100 900;font-style:normal}
+/* Taller modular plates with a broad, quiet repeating centre. */
+.btn{--button-cap:52px;min-height:80px;padding:18px 62px!important;background-image:url('ui/button-left-v2.png'),url('ui/button-right-v2.png')!important;font:600 27px/1.15 'Expedition Button Gothic',var(--ui-title),serif!important;text-transform:none;letter-spacing:.01em}
+.btn::before{background-image:url('ui/button-middle-v2.png')}
+.btn.small{--button-cap:44px;min-height:68px;padding:14px 52px!important;font:600 24px/1.15 'Expedition Button Gothic',var(--ui-title),serif!important}
+.inventory-dialog .inventory-actions .btn{font:600 22px/1.15 'Expedition Button Gothic',var(--ui-title),serif!important}
+.dock-next.btn{--button-cap:58px;min-height:90px;font:600 31px/1.15 'Expedition Button Gothic',var(--ui-title),serif!important}
+/* The compact Back / Continue backing keeps its existing shape and size. */
+.back-sprite{font-family:'Expedition Button Gothic',var(--ui-title),serif!important;font-weight:600;font-size:26px}
+.btn.universal-button,.btn[data-save-load]{font-family:'Expedition Button Gothic',var(--ui-title),serif!important;min-height:58px}
+.btn[data-save-load]{min-height:48px}
+/* Main menu plaques have their own artwork and typography hierarchy. */
+.menu-nav .btn.main-menu-button{display:flex;align-items:center;justify-content:center;min-height:90px;padding:15px 48px!important;background:transparent url('ui/button-main-menu-v1.png') no-repeat center / 100% 100%!important;text-align:center!important}
+.btn.main-menu-button::before{display:none}
+.main-menu-button .menu-command-icon,.main-menu-button .menu-command-stud{display:none}
+.main-menu-button .menu-command-copy{padding:0;border:0}
+.main-menu-button .menu-command-copy b{font:600 30px/1.05 'Expedition Button Gothic',var(--ui-title),serif;color:#e9d1a0}
+.main-menu-button .menu-command-copy small{font:9px/1.2 Arial,sans-serif;color:#b4b2a2;letter-spacing:.04em;margin-top:5px}
+@media(max-height:760px){.menu-nav .btn.main-menu-button{min-height:76px}.main-menu-button .menu-command-copy b{font-size:27px}}
+/* Raised end tips overlap the centre instead of meeting it at a flat seam. */
+.btn:not(.universal-button):not(.main-menu-button):not([data-save-load]){--button-overlap:12px;background-image:none!important}
+.btn:not(.universal-button):not(.main-menu-button):not([data-save-load])::before{z-index:-2;left:calc(var(--button-cap) - var(--button-overlap));right:calc(var(--button-cap) - var(--button-overlap))}
+.btn:not(.universal-button):not(.main-menu-button):not([data-save-load])::after{content:"";display:block!important;position:absolute;z-index:-1;inset:0;pointer-events:none;background-image:url('ui/button-left-v2.png'),url('ui/button-right-v2.png');background-size:var(--button-cap) 100%,var(--button-cap) 100%;background-position:left center,right center;background-repeat:no-repeat;mask-image:linear-gradient(to right,#000 calc(100% - 7px),transparent),linear-gradient(to left,#000 calc(100% - 7px),transparent);mask-size:var(--button-cap) 100%,var(--button-cap) 100%;mask-position:left center,right center;mask-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008)}
+/* Compact controls use the same painted iron and brass as the wider plates. */
+.back-sprite,.back-sprite.chart-back,.btn.universal-button,.btn[data-save-load]{--button-cap:38px;--button-overlap:10px;isolation:isolate;background:transparent!important;border:0!important;box-shadow:none!important;padding:10px 38px!important}
+.back-sprite{position:relative}
+.back-sprite::before,.btn.universal-button::before,.btn[data-save-load]::before{content:"";display:block;position:absolute;z-index:-2;left:calc(var(--button-cap) - var(--button-overlap));right:calc(var(--button-cap) - var(--button-overlap));top:0;bottom:0;width:auto;height:auto;opacity:1;pointer-events:none;background:url('ui/button-middle-v2.png') repeat-x center / auto 100%}
+.back-sprite::after,.btn.universal-button::after,.btn[data-save-load]::after{content:"";display:block!important;position:absolute;z-index:-1;inset:0;pointer-events:none;background-image:url('ui/button-left-v2.png'),url('ui/button-right-v2.png');background-size:var(--button-cap) 100%,var(--button-cap) 100%;background-position:left center,right center;background-repeat:no-repeat;mask-image:linear-gradient(to right,#000 calc(100% - 7px),transparent),linear-gradient(to left,#000 calc(100% - 7px),transparent);mask-size:var(--button-cap) 100%,var(--button-cap) 100%;mask-position:left center,right center;mask-repeat:no-repeat;filter:drop-shadow(0 2px 2px #0008)}
+.item-painted{object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 2px 2px #0008)}
+/* Three complete transparent fortress tiers; interface stays stationary. */
+.main-menu{--menu-mouse-x:0;--menu-mouse-y:0;background:#07191e!important;isolation:isolate}
+.menu-depth{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.menu-depth-space,.menu-depth-debris,.menu-depth-layer{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.menu-depth-fortress{position:absolute;left:64%;top:49%;width:min(88vw,118dvh);aspect-ratio:14/11;transform:translate(-50%,-50%)}
+.menu-depth-fortress .menu-depth-layer{object-fit:contain}
+.menu-depth-fortress .menu-depth-middle{left:10%;top:14.5%;width:80%;height:80%}
+.menu-depth-layer{transition:none;will-change:transform}
+.menu-depth-space{transform:translate3d(calc(var(--menu-mouse-x)*6px),calc(var(--menu-mouse-y)*4px),0) scale(1.04);will-change:transform}
+.menu-depth-debris{transform:translate3d(calc(var(--menu-mouse-x)*14px),calc(var(--menu-mouse-y)*9px),0) scale(1.045);will-change:transform}
+.menu-depth-lower{transform:translate3d(calc(var(--menu-mouse-x)*6px),calc(var(--menu-mouse-y)*3px),0)}
+.menu-depth-middle{transform:translate3d(calc(var(--menu-mouse-x)*8px),calc(var(--menu-mouse-y)*4px),0)}
+.menu-depth-upper{transform:translate3d(calc(var(--menu-mouse-x)*11px),calc(var(--menu-mouse-y)*6px),0)}
+.main-menu:before{z-index:1}
+.main-menu .menu-shell{position:relative;z-index:2}
+.main-menu .command-log{z-index:2}
+@media(prefers-reduced-motion:reduce){.menu-depth-layer,.menu-depth-space,.menu-depth-debris{transform:none!important;transition:none;will-change:auto}}
+@media(pointer:fine){body,body *{cursor:url('ui/cursor-v1.png') 3 2,auto!important}input,textarea,[contenteditable="true"]{cursor:text!important}button:disabled{cursor:not-allowed!important}}
+
+/* Separate illustrated location and chart title plates. */
+.hub-layout>.map-label.hub-title-plaque{left:22px;top:18px;width:280px;height:130px;min-height:0;padding:36px 52px 20px;display:flex;flex-direction:column;justify-content:center;gap:2px;background:transparent url('ui/title-hub-v1.png') no-repeat center/100% 100%!important;border:0!important;border-image:none!important;box-shadow:none!important;clip-path:none!important;opacity:1;text-align:center;filter:drop-shadow(0 4px 5px #0008)}
+.hub-title-plaque:before,.hub-title-plaque:after{display:none!important}
+.hub-title-plaque .hub-title-kicker{font:7px/1.2 Arial,sans-serif;letter-spacing:.12em;color:#a9956c}
+.hub-title-plaque strong{font:400 35px/1 var(--ui-title)!important;color:#ecd6a3}
+.hub-title-plaque .hub-title-sub{font:7px/1.25 Arial,sans-serif;letter-spacing:.08em;color:#91a5a0}
+.dock-chart-screen>header>div{width:330px;height:112px;padding:33px 54px 23px;display:flex;flex-direction:column;justify-content:center;gap:3px;background:transparent url('ui/title-chart-v1.png') no-repeat center/100% 100%;border:0;box-shadow:none;filter:drop-shadow(0 4px 5px #0007);text-align:center}
+.dock-chart-screen>header>div .dock-step{font:8px/1.2 Arial,sans-serif;letter-spacing:.1em;color:#c8b387;white-space:nowrap}
+.dock-chart-screen>header>div h2{font:400 26px/1 var(--ui-title)!important;margin:0;color:#efd9a6;white-space:nowrap}
+@media(max-width:600px){.hub-layout>.map-label.hub-title-plaque{left:8px;top:8px;width:250px;height:118px;padding:34px 45px 18px}.hub-title-plaque strong{font-size:30px!important}.dock-chart-screen>header{left:8px;top:8px}.dock-chart-screen>header>div{width:300px;height:104px;padding:29px 50px 22px}.dock-chart-screen>header>div h2{font-size:24px!important}}
+.hub-layout>.map-label.hub-title-plaque{height:130px!important;padding:36px 52px 20px!important}.hub-title-plaque strong{margin:0!important}.hub-title-plaque .hub-title-sub{display:block}@media(max-width:600px){.hub-layout>.map-label.hub-title-plaque{width:250px!important;height:118px!important;padding:34px 45px 18px!important}}
+/* Keep the music state on one line inside its compact plate. */
+.settings-nav{display:flex;flex-wrap:wrap;gap:12px;max-width:none}
+.btn[data-action="sound"]{white-space:nowrap;min-width:190px;--button-cap:38px;padding:14px 40px!important}
+.settings-nav .btn[data-action="sound"]{flex:0 0 auto;min-height:68px}
+/* Nine-slice PNG windows: fixed corners, repeating rails and tiled interior. */
+.options-dialog.options-dialog,.inventory-dialog.inventory-dialog,.location-map-dialog.location-map-dialog{border:14px solid transparent!important;border-image:url('ui/window-frame-clear-v2.png') 360 fill / 52px / 0 round!important;background:none!important;box-shadow:none!important;filter:drop-shadow(0 18px 26px #000b);padding:22px 24px;clip-path:none!important}
+.options-dialog.options-dialog:before,.inventory-dialog.inventory-dialog:before,.location-map-dialog.location-map-dialog:before{display:none!important}
+.options-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.options-actions .btn,.options-actions .back-sprite{white-space:nowrap;width:100%;min-width:0}
+.options-actions .btn{--button-cap:40px;min-height:68px;padding:14px 44px!important}
+.options-actions .back-sprite{height:68px}
+.back-sprite:focus-visible{outline:none!important;filter:brightness(1.2) drop-shadow(0 0 4px #d9b96e80)}
+@media(max-width:600px){.options-dialog.options-dialog,.inventory-dialog.inventory-dialog,.location-map-dialog.location-map-dialog{border-width:12px!important;border-image-width:36px!important;padding:20px 16px}.options-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.options-actions .btn{--button-cap:28px;padding:12px 29px!important;font-size:21px!important}.options-actions .back-sprite{font-size:23px!important;padding:10px 28px!important}}
+@media(max-width:400px){.options-actions{grid-template-columns:1fr}}
+
+/* Corner-mounted location plate stays in the top layer above hub dialogs. */
+.tag,.menu-section-label,.dock-step{display:none!important}
+.building-scene>.back-sprite{position:absolute;left:55px;bottom:24px;z-index:5;width:180px;height:60px}
+@media(max-width:1100px){.building-scene>.back-sprite{left:45px}}
+@media(max-width:760px){.building-scene>.back-sprite{left:33px}}
+.building-scene .building-panel{padding-bottom:100px!important}
+.building-scene .building-panel h2{margin-top:0}
+.recruit-screen .recruit-top{position:absolute;left:24px;bottom:100px;width:auto;z-index:5}
+.recruit-screen .recruit-panels{margin-top:0;max-height:calc(100dvh - 190px)}
+.settings-nav .back-sprite{position:fixed;left:24px;bottom:24px;z-index:5}
+.options-actions [data-action="options-close"]{grid-column:1;grid-row:2}
+.options-actions [data-action="campaign-menu"]{grid-column:2;grid-row:2}
+.campaign-dialog>[data-save-close]{display:flex;margin-top:18px;margin-right:auto}
+.trade-top>.back-sprite{position:fixed;left:24px;bottom:24px;z-index:5}
+@media(max-width:400px){.options-actions [data-action="options-close"]{grid-row:4;grid-column:1}.options-actions [data-action="campaign-menu"]{grid-row:3;grid-column:1}}
+.dock-screen-header{left:22px;top:18px;right:auto;z-index:3;pointer-events:none}
+.dock-screen-header>div{box-sizing:border-box;width:330px;height:112px;padding:33px 54px 23px;display:flex;flex-direction:column;justify-content:center;gap:3px;background:transparent url('ui/title-chart-v1.png') no-repeat center/100% 100%;border:0;filter:drop-shadow(0 4px 5px #0007);text-align:center}
+.dock-screen-header>div .dock-step{font:8px/1.2 Arial,sans-serif;letter-spacing:.1em;color:#c8b387;white-space:nowrap}
+.dock-screen-header>div h1{font:400 26px/1 var(--ui-title)!important;margin:0;color:#efd9a6;white-space:nowrap}
+.back-sprite.dock-crew-back{position:absolute;z-index:4;left:28px;bottom:28px;width:180px;height:60px}
+@media(max-width:600px){.dock-screen-header{left:8px;top:8px}.dock-screen-header>div{width:300px;height:104px;padding:29px 50px 22px}.dock-screen-header>div h1{font-size:24px!important}.back-sprite.dock-crew-back{left:12px;bottom:18px;width:150px;height:54px}}
+.hub-layout>.map-label.hub-title-plaque{position:fixed!important;inset:auto!important;left:0!important;top:0!important;width:380px!important;height:190px!important;box-sizing:border-box;margin:0!important;padding:18px 112px 100px 20px!important;background-image:url('ui/title-hub-scroll-v5.png')!important;z-index:10000;pointer-events:none;overflow:visible;gap:3px;filter:drop-shadow(2px 4px 4px #0009)}
+.hub-title-plaque::backdrop{background:transparent;pointer-events:none}
+body:has(.hub-loading) .hub-title-plaque{z-index:999!important}
+.hub-title-plaque .hub-title-kicker{font-size:8px;white-space:nowrap}
+.hub-title-plaque strong{font-size:48px!important;white-space:nowrap}
+.hub-title-plaque .hub-title-sub{font-size:7px;letter-spacing:.04em;white-space:nowrap}
+@media(max-width:600px){.hub-layout>.map-label.hub-title-plaque{width:310px!important;height:155px!important;padding:14px 91px 82px 16px!important;gap:2px}.hub-title-plaque strong{font-size:39px!important}.hub-title-plaque .hub-title-kicker{font-size:7px}.hub-title-plaque .hub-title-sub{font-size:6px}}
+
+/* Centre the visible Gothic letterforms, accounting for the font's tall ascent. */
+.btn,.back-sprite{display:inline-flex!important;align-items:center;justify-content:center;line-height:1!important;padding-top:calc(8px - .08em)!important;padding-bottom:calc(8px + .08em)!important}
+.dock-next.btn{gap:24px}
+.dock-next.btn span{margin-left:0}
+.dock-screen-header>div,.dock-chart-screen>header>div{padding-top:28px!important;padding-bottom:28px!important}
+.dock-screen-header h1,.dock-chart-screen>header h2{transform:translateY(.08em)}
+
+/* Reuse the modular window artwork; only the interior lets the room show through. */
+.building-scene .building-panel,.recruit-panel,.trade-panel{position:relative;isolation:isolate;border:1px solid transparent!important;border-image:none!important;background:none!important;box-shadow:none!important;clip-path:none!important}
+.building-scene .building-panel::before,.recruit-panel::before,.trade-panel::before{content:"";display:block!important;position:absolute;inset:0;z-index:-2;border:14px solid transparent!important;border-image:url('ui/window-frame-clear-v2.png') 360 fill / 52px / 0 round!important;background:none!important;opacity:.7;pointer-events:none;clip-path:none!important}
+.building-scene .building-panel::after,.recruit-panel::after,.trade-panel::after{content:"";display:block!important;position:absolute;inset:0;z-index:-1;border:14px solid transparent;border-image:url('ui/window-frame-clear-v2.png') 360 / 52px / 0 round;background:none;pointer-events:none;mask-image:linear-gradient(#000,#000),linear-gradient(#000,#000),linear-gradient(#000,#000),linear-gradient(#000,#000),linear-gradient(#000,#000),linear-gradient(#000,#000),linear-gradient(#000,#000),linear-gradient(#000,#000);mask-size:100% 14px,100% 14px,14px 100%,14px 100%,36px 36px,36px 36px,36px 36px,36px 36px;mask-position:top,bottom,left,right,top left,top right,bottom left,bottom right;mask-repeat:no-repeat}
+.building-scene>.back-sprite{left:55px;bottom:66px}
+.building-scene .upgrade-box{margin-top:20px;padding:8px 0!important}
+.recruit-panel{padding:26px!important}
+.trade-panel{padding:24px!important}
+@media(max-width:1100px){.building-scene>.back-sprite{left:45px}}
+@media(max-width:760px){.building-scene>.back-sprite{left:33px}}
+
+
+/* Shared green glass interiors; the painted metal remains a separate frame. */
+:root{--ui-panel-glass:rgba(5,16,11,.88);--ui-card-glass:rgba(4,13,9,.83)}
+.options-dialog.options-dialog,.inventory-dialog.inventory-dialog,.location-map-dialog.location-map-dialog{
+  border-image-slice:360!important;background:var(--ui-panel-glass)!important;
+}
+.building-scene .building-panel::before,.recruit-panel::before,.trade-panel::before{
+  border-image-slice:360!important;background:var(--ui-panel-glass)!important;opacity:1;
+}
+.hub-layout>.hub-roster,.building-scene .hub-roster,.dock-hub-roster.hub-roster{
+  border:12px solid transparent!important;
+  border-image:url('ui/window-frame-clear-v2.png') 360 / 30px / 0 round!important;
+  background:var(--ui-panel-glass)!important;box-shadow:0 8px 22px #0008!important;
+  padding:16px 10px!important;box-sizing:border-box;
+}
+.hub-roster-header{
+  border:0!important;border-image:none!important;background:none!important;
+  box-shadow:none!important;clip-path:none!important;padding:8px 6px 16px!important;
+  margin-bottom:8px;border-bottom:1px solid #8c704380!important;
+}
+.hub-roster-header>span{display:none!important}
+.hub-roster-header strong{margin:0!important;font:400 27px/1.1 var(--ui-title)!important;letter-spacing:0!important}
+.hub-roster .hub-roster-member{
+  background:var(--ui-card-glass)!important;border:1px solid #80683d80!important;
+  border-image:none!important;box-shadow:inset 0 1px #c5a76c18,0 3px 5px #0005!important;
+  clip-path:none!important;min-height:80px;
+}
+.hub-roster .hub-roster-member:hover,.hub-roster .hub-roster-member:focus-visible{
+  background:rgba(17,34,22,.92)!important;border-color:#b59759!important;
+}
+.hub-roster footer{display:none}
+.btn:not(.main-menu-button)::before,.back-sprite::before{
+  background-image:linear-gradient(to bottom,transparent 22%,rgba(0,15,3,.72) 22% 78%,transparent 78%),url('ui/button-middle-v2.png');
+  background-color:transparent;background-blend-mode:normal;opacity:.86;
+}
+.building-scene .building-panel::before,.recruit-panel::before,.trade-panel::before{border-image:none!important}
+.hub-layout>.hub-roster,.building-scene .hub-roster,.dock-hub-roster.hub-roster{
+  border-image:url('ui/window-frame-clear-v2.png') 360 / 30px / 0 round!important;
+}
+.options-dialog.options-dialog,.inventory-dialog.inventory-dialog,.location-map-dialog.location-map-dialog{
+  border-image:url('ui/window-frame-clear-v2.png') 360 / 38px / 0 round!important;
+}
+.hub-roster::after,.options-dialog::after,.inventory-dialog::after,.location-map-dialog::after{display:none!important}
+
+/* The unique scroll includes its painted location name. */
+.hub-layout>.map-label.hub-title-plaque{left:30px!important;top:20px!important;width:380px!important;height:152px!important;padding:0!important}
+@media(max-width:600px){.hub-layout>.map-label.hub-title-plaque{width:300px!important;height:120px!important}}
+/* Draw one complete frame on the window itself, without clipped overlay strips. */
+.building-scene .building-panel,.recruit-panel,.trade-panel{
+  border:14px solid transparent!important;
+  border-image:url('ui/window-frame-clear-v2.png') 360 / 38px / 0 round!important;
+  background:var(--ui-panel-glass)!important;
+}
+.building-scene .building-panel::before,.building-scene .building-panel::after,
+.recruit-panel::before,.recruit-panel::after,.trade-panel::before,.trade-panel::after{display:none!important}
+.building-scene .building-panel{padding:8px 12px 86px!important}
+.recruit-panel{padding:12px!important}
+.trade-panel{padding:10px!important}
+/* Keep the green fill inside the metal, out of the frame's transparent margin. */
+.building-scene .building-panel,.recruit-panel,.trade-panel,
+.hub-layout>.hub-roster,.building-scene .hub-roster,.dock-hub-roster.hub-roster,
+.options-dialog.options-dialog,.inventory-dialog.inventory-dialog,.location-map-dialog.location-map-dialog{
+  background-clip:padding-box!important;
+}
+/* Extend the fill beneath the inner rail, while keeping its outer margin clear. */
+.building-scene .building-panel,.recruit-panel,.trade-panel,
+.options-dialog.options-dialog,.inventory-dialog.inventory-dialog,.location-map-dialog.location-map-dialog,
+.hub-layout>.hub-roster,.building-scene .hub-roster,.dock-hub-roster.hub-roster{
+  --panel-fill-inset:10px;
+  background:linear-gradient(var(--ui-panel-glass),var(--ui-panel-glass)) center / calc(100% - 2 * var(--panel-fill-inset)) calc(100% - 2 * var(--panel-fill-inset)) no-repeat!important;
+  background-origin:border-box!important;background-clip:border-box!important;
+}
+.hub-layout>.hub-roster,.building-scene .hub-roster,.dock-hub-roster.hub-roster{--panel-fill-inset:8px}
+/* Footer resources and settings share the same hollow metal frame and green fill. */
+.base-stock,.hub-controls{
+  border:8px solid transparent!important;
+  border-image:url('ui/window-frame-clear-v2.png') 360 / 24px / 0 round!important;
+  clip-path:none!important;box-shadow:0 4px 12px #0006!important;
+  background:linear-gradient(var(--ui-panel-glass),var(--ui-panel-glass)) center / calc(100% - 12px) calc(100% - 12px) no-repeat!important;
+  background-origin:border-box!important;background-clip:border-box!important;
+}
+.base-stock{padding:0 8px!important}
+.base-stock-crest,.base-stock>.base-stock-item{border-right:1px solid #80683d80!important}
+.base-stock-crest{width:40px;height:40px}
+.base-stock-end,.hub-controls-label{display:none!important}
+.hub-controls{padding:0 6px!important;gap:6px}
+.hub-controls .expedition-icon{width:38px!important;height:38px!important;background:var(--ui-card-glass)!important;box-shadow:inset 0 1px #c5a76c18!important;border:1px solid #80683d80}
+@media(max-width:600px){.base-stock,.hub-controls{border-width:6px!important;border-image-width:18px!important}.hub-controls{padding:0 3px!important;gap:4px}.hub-controls .expedition-icon{width:30px!important;height:30px!important}}
+/* Align the footer to the building and crew window edges, with a clear row gap. */
+@media(min-width:761px){
+  body:has(.building-scene) .base-stock{left:28px;right:calc(18px + var(--base-controls) + var(--base-gap))}
+  body:has(.building-scene) .hub-controls{right:18px}
+  .building-scene{padding-bottom:34px}
+  .building-scene .hub-roster{bottom:34px}
+}
+
+/* Keep retreat choices readable inside the decorative button caps. */
+.flee-dialog.options-dialog{width:min(780px,calc(100vw - 32px))}
+.flee-dialog .dialog-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:24px;padding:18px 12px}
+.flee-dialog .dialog-actions .btn{width:100%;margin:0;white-space:nowrap;line-height:1.3!important;padding:14px 44px!important;font-size:22px!important}
+@media(max-width:780px){.flee-dialog .dialog-actions .btn{--button-cap:36px;padding:14px 36px!important;font-size:20px!important}}
+@media(max-width:600px){.flee-dialog .dialog-actions{grid-template-columns:1fr;gap:18px}}
+@media(max-width:480px){.flee-dialog .dialog-actions{padding:14px 0}.flee-dialog .dialog-actions .btn{--button-cap:28px;padding:14px 30px!important;font-size:18px!important}}

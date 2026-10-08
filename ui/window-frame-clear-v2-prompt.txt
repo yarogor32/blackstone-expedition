@@ -1,0 +1,2 @@
+Built-in image generation edit of window-master-v1.png.
+Preserve iron and brass frame geometry and corner ornaments. Remove the entire blue/teal interior, including colored bands along all four rails, to true alpha transparency. Keep only metal opaque. Transparent exterior and hollow center, no text or replacement fill.

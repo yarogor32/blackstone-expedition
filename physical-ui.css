@@ -1,0 +1,72 @@
+/* Final material pass. Loaded last so every screen uses the same physical shell. */
+.options-dialog,.building-panel,.campaign-slot,.recruit-panel,.trade-panel,.inventory-dialog,.location-map-dialog,.combat-console,.battle-overlay>header{
+  clip-path:none!important;
+  border:14px solid transparent!important;
+  border-image:url('ui/gothic-frame.svg') 28 / 16px / 3px stretch!important;
+  background-color:#0a0e0c!important;
+  background-image:linear-gradient(#171c18e8,#050807f6),url('ui/iron-texture.svg')!important;
+  background-blend-mode:normal,multiply!important;
+  box-shadow:inset 0 0 30px #000,0 18px 52px #000e!important;
+}
+.btn,.combat-action,.expedition-icon{
+  clip-path:none!important;
+  border:3px double #80653a!important;
+  background-color:#111512!important;
+  background-image:radial-gradient(circle at 7px 7px,#d4b46f 0 1px,#4a351b 2px 3px,transparent 4px),radial-gradient(circle at calc(100% - 7px) 7px,#d4b46f 0 1px,#4a351b 2px 3px,transparent 4px),linear-gradient(#363832 0,#181c19 17%,#090d0c 61%,#1e1d18 100%),url('ui/iron-texture.svg')!important;
+  background-blend-mode:normal,normal,overlay,multiply!important;
+  box-shadow:inset 0 2px #73726866,inset 0 -3px #000,0 3px 7px #000b!important;
+}
+.btn:hover,.btn:focus-visible,.combat-action:hover,.combat-action:focus-visible,.expedition-icon:hover,.expedition-icon:focus-visible{border-color:#d0ab65!important;box-shadow:inset 0 2px #9f9a8666,inset 0 -3px #000,0 0 10px #b68a413d,0 4px 8px #000c!important}
+.btn:active,.combat-action:active,.expedition-icon:active{translate:0 2px;box-shadow:inset 0 5px 10px #000,0 1px 2px #000!important}
+
+.hub-title-plaque,.hub-roster-header,.base-stock,.hub-controls,.hub-layout .map-tip{
+  clip-path:none!important;
+  border:8px solid transparent!important;
+  border-image:url('ui/gothic-frame.svg') 28 / 9px / 1px stretch!important;
+  background-color:#0b0e0c!important;
+  background-image:linear-gradient(#20231de0,#060807f2),url('ui/iron-texture.svg')!important;
+  background-blend-mode:normal,multiply!important;
+  box-shadow:inset 0 0 16px #000,0 6px 14px #000b!important;
+}
+.hub-roster-member{
+  grid-template-columns:15px 50px minmax(0,1fr) 8px!important;
+  clip-path:none!important;
+  border:1px solid #4b4435!important;
+  border-left:3px solid #665637!important;
+  border-image:none!important;
+  background:linear-gradient(100deg,#1c211ca8,#090c0bde 45%,#050706f2)!important;
+  box-shadow:inset 0 1px #69695b2e,inset 0 -2px 5px #000,0 3px 7px #0008!important;
+  outline:none!important;
+}
+.hub-roster-member:hover,.hub-roster-member:focus-visible{
+  translate:-2px 0!important;
+  filter:brightness(1.12);
+  border-color:#957849!important;
+  box-shadow:inset 3px 0 #3aa8aa,inset 0 1px #8b886f3d,0 5px 10px #000b!important;
+}
+.hub-title-plaque:before{left:10px;top:14px;bottom:14px;width:4px;background:linear-gradient(#201409,#c1954f,#201409);box-shadow:2px 0 #020303}.hub-title-plaque strong,.hub-roster-header strong{font-family:var(--ui-title)}
+.base-stock{border-width:9px!important;border-image-width:10px!important}.base-stock-crest{border-right:3px ridge #755b31!important}.base-stock>.base-stock-item{border-right:3px ridge #514125!important}.hub-controls{border-width:8px!important;border-image-width:9px!important}.hub-controls-label{top:5px!important}
+
+.recruit-mini,.supply-product,.trade-slot,.inventory-slot,.dock-roster-toggle,.dock-party-member,.camp-party>span{
+  clip-path:none!important;border:3px double #685535!important;
+  background-color:#101511!important;background-image:linear-gradient(#222921aa,#070a08df),url('ui/iron-texture.svg')!important;background-blend-mode:normal,multiply!important;
+  box-shadow:inset 0 2px #69695d44,inset 0 -2px #000!important;
+}
+.dock-roster-entry.selected .dock-roster-toggle{
+  border:3px double #d7b66e!important;
+  background-color:#1c241c!important;
+  background-image:linear-gradient(100deg,#3b3823d9,#111b16ed 46%,#070a08f7),url('ui/iron-texture.svg')!important;
+  box-shadow:inset 4px 0 #42c6c4,inset 0 2px #a69a6c66,inset 0 -3px #000,0 0 0 1px #2a1c0c,0 0 11px #bf934540!important;
+  padding-right:108px!important;
+}
+.dock-roster-info{right:9px!important}.dock-selected-badge{position:absolute;z-index:3;right:36px;top:50%;translate:0 -50%;display:grid;grid-template-columns:18px auto;align-items:center;gap:4px;height:25px;padding:2px 6px 2px 3px;border:1px solid #b69454;background:linear-gradient(#29281d,#0b100d);box-shadow:inset 0 1px #8f865b55,0 2px 4px #000;color:#eed28e;pointer-events:none}.dock-selected-badge b{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#b18b47;color:#07100d;font:700 11px Arial}.dock-selected-badge small{color:#d5bd86;font:700 7px/1 Arial!important;letter-spacing:.08em;white-space:nowrap}.dock-roster-entry.selected:before{content:"";position:absolute;z-index:4;left:-2px;top:6px;bottom:6px;width:3px;background:#52d9d5;box-shadow:0 0 8px #39d1ce}
+.return-host blockquote,.inventory-detail,.raid-map-board{
+  clip-path:none!important;border:9px solid transparent!important;border-image:url('ui/gothic-frame.svg') 28 / 10px / 1px stretch!important;
+  background-color:#080b09!important;background-image:linear-gradient(#171c18ec,#050706f6),url('ui/iron-texture.svg')!important;background-blend-mode:normal,multiply!important;
+}
+.npc-dialogue,.upgrade-box,.character-stats,.inventory-status,.inventory-crew,.trade-selection,.location-map-dialog footer,.flee-dialog .dialog-actions,.camp-dialog .dialog-actions{
+  clip-path:none!important;border:3px double #5f4d2e!important;background-color:#080b09!important;background-image:linear-gradient(#101410b5,#050706d9),url('ui/iron-texture.svg')!important;background-blend-mode:normal,multiply!important;box-shadow:inset 0 2px 8px #000!important;
+}
+.inventory-slot .item-icon,.supply-product .item-icon,.trade-slot .item-icon{filter:sepia(.2) saturate(.85) drop-shadow(0 3px 2px #000)}
+.combat-action .drawn-icon,.expedition-icon .drawn-icon{filter:sepia(.65) saturate(.8) drop-shadow(0 2px 2px #000)}
+@media(max-width:600px){.hub-roster-member{border-image:none!important}.base-stock,.hub-controls{border-width:6px!important}.options-dialog,.building-panel,.campaign-slot,.recruit-panel,.trade-panel,.inventory-dialog,.location-map-dialog{border-width:9px!important;border-image-width:10px!important}}
